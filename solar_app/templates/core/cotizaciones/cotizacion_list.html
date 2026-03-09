@@ -1,0 +1,109 @@
+{% extends 'base.html' %}
+{% block title %}Cotizaciones - SolarQuote{% endblock %}
+
+{% block content %}
+<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
+    <div>
+        <h1 class="text-2xl font-bold text-gray-900">Cotizaciones</h1>
+        <p class="text-sm text-gray-500 mt-1">Historial de cotizaciones generadas</p>
+    </div>
+    <a href="{% url 'cotizacion_create' %}" class="mt-4 sm:mt-0 btn-primary">
+        <i class="fas fa-plus mr-2"></i> Nueva Cotización
+    </a>
+</div>
+
+<div class="card mb-6 p-4">
+    <form method="get" class="flex flex-wrap gap-4 items-end">
+        <div class="flex-1 min-w-[200px]">
+            <input type="text" name="q" value="{{ request.GET.q }}" placeholder="Buscar por número, proyecto, cliente..." class="form-input">
+        </div>
+        <div>
+            <select name="estado" class="form-select">
+                <option value="">Todos los estados</option>
+                <option value="borrador" {% if request.GET.estado == 'borrador' %}selected{% endif %}>Borrador</option>
+                <option value="enviada" {% if request.GET.estado == 'enviada' %}selected{% endif %}>Enviada</option>
+                <option value="aprobada" {% if request.GET.estado == 'aprobada' %}selected{% endif %}>Aprobada</option>
+                <option value="rechazada" {% if request.GET.estado == 'rechazada' %}selected{% endif %}>Rechazada</option>
+            </select>
+        </div>
+        <button type="submit" class="btn-primary"><i class="fas fa-search mr-1"></i> Buscar</button>
+    </form>
+</div>
+
+<div class="card overflow-hidden">
+    <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Número</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Proyecto</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Cliente</th>
+                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Total</th>
+                    <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Estado</th>
+                    <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Fecha</th>
+                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Acciones</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200">
+                {% for cot in cotizaciones %}
+                <tr class="hover:bg-gray-50 transition-colors">
+                    <td class="px-6 py-4">
+                        <a href="{% url 'cotizacion_detail' cot.pk %}" class="text-sm font-mono font-medium text-solar-600 hover:underline">
+                            {{ cot.numero }}
+                        </a>
+                    </td>
+                    <td class="px-6 py-4 text-sm">{{ cot.proyecto.nombre }}</td>
+                    <td class="px-6 py-4 text-sm text-gray-600">{{ cot.proyecto.cliente.nombre }}</td>
+                    <td class="px-6 py-4 text-right text-sm font-bold">${{ cot.total|floatformat:0 }}</td>
+                    <td class="px-6 py-4 text-center">
+                        <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium
+                            {% if cot.estado == 'aprobada' %}bg-green-100 text-green-700
+                            {% elif cot.estado == 'rechazada' %}bg-red-100 text-red-700
+                            {% elif cot.estado == 'enviada' %}bg-blue-100 text-blue-700
+                            {% elif cot.estado == 'vencida' %}bg-gray-100 text-gray-500
+                            {% else %}bg-yellow-100 text-yellow-700{% endif %}">
+                            {{ cot.get_estado_display }}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 text-center text-sm text-gray-500">{{ cot.fecha_emision|date:"d/m/Y" }}</td>
+                    <td class="px-6 py-4 text-right space-x-1">
+                        <a href="{% url 'cotizacion_clonar' cot.pk %}" class="text-gray-400 hover:text-solar-600" title="Clonar"
+                           onclick="return confirm('¿Deseas clonar esta cotización?')">
+                            <i class="fas fa-copy"></i>
+                        </a>
+                        <a href="{% url 'cotizacion_pdf' cot.pk %}" class="text-red-500 hover:text-red-700" title="PDF">
+                            <i class="fas fa-file-pdf"></i>
+                        </a>
+                        <a href="{% url 'cotizacion_excel' cot.pk %}" class="text-green-500 hover:text-green-700" title="Excel">
+                            <i class="fas fa-file-excel"></i>
+                        </a>
+                        <a href="{% url 'cotizacion_update' cot.pk %}" class="text-solar-600 hover:text-solar-800" title="Editar">
+                            <i class="fas fa-edit"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" class="px-6 py-12 text-center text-gray-400">
+                        <i class="fas fa-file-invoice text-4xl mb-3 block"></i>
+                        <p>No hay cotizaciones aún.</p>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% if is_paginated %}
+<div class="mt-6 flex items-center justify-center gap-2">
+    {% if page_obj.has_previous %}
+    <a href="?page={{ page_obj.previous_page_number }}" class="btn-secondary text-xs">← Anterior</a>
+    {% endif %}
+    <span class="text-sm text-gray-500">Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
+    {% if page_obj.has_next %}
+    <a href="?page={{ page_obj.next_page_number }}" class="btn-secondary text-xs">Siguiente →</a>
+    {% endif %}
+</div>
+{% endif %}
+{% endblock %}

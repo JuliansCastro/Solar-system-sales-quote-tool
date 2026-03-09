@@ -1,0 +1,39 @@
+# Byte-compiled
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Virtual env
+venv/
+env/
+.venv/
+
+# Environment
+.env
+
+# Database
+*.sqlite3
+db.sqlite3
+
+# Static & Media (collected)
+staticfiles/
+media/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker
+postgres_data/
+
+# Logs
+*.log
+
+# Migrations
+solar_app/core/migrations/*.py

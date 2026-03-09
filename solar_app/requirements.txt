@@ -1,0 +1,36 @@
+# Django
+Django>=5.1,<5.2
+djangorestframework>=3.15
+django-filter>=24.0
+django-crispy-forms>=2.3
+crispy-tailwind>=1.0
+
+# Database
+psycopg2-binary>=2.9
+
+# Authentication
+django-allauth>=65.0
+
+# File handling
+Pillow>=10.4
+
+# Reports & Charts
+plotly>=5.24
+kaleido>=0.2.1
+reportlab>=4.2
+openpyxl>=3.1
+WeasyPrint>=62.0
+
+# API - PVGIS integration
+requests>=2.32
+
+# Deployment
+gunicorn>=22.0
+whitenoise>=6.7
+
+# Development
+python-dotenv>=1.0
+django-debug-toolbar>=4.4
+
+# Math / Engineering
+numpy>=1.26

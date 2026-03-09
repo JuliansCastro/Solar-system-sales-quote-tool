@@ -1,0 +1,422 @@
+{% extends 'base.html' %}
+{% load humanize l10n %}
+{% block title %}Cotización {{ cotizacion.numero }} - SolarQuote{% endblock %}
+
+{% block content %}
+<div class="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between">
+    <div>
+        <a href="{% url 'cotizacion_list' %}" class="text-solar-600 hover:underline text-sm">
+            <i class="fas fa-arrow-left mr-1"></i> Cotizaciones
+        </a>
+        <h1 class="text-2xl font-bold text-gray-900 mt-1">{{ cotizacion.numero }}</h1>
+    </div>
+    <div class="mt-4 sm:mt-0 flex gap-2 flex-wrap">
+        <a href="{% url 'cotizacion_pdf' cotizacion.pk %}" class="btn-secondary text-xs">
+            <i class="fas fa-file-pdf text-red-500 mr-1"></i> PDF
+        </a>
+        <a href="{% url 'cotizacion_excel' cotizacion.pk %}" class="btn-secondary text-xs">
+            <i class="fas fa-file-excel text-green-600 mr-1"></i> Excel
+        </a>
+        <a href="{% url 'cotizacion_update' cotizacion.pk %}" class="btn-primary text-xs">
+            <i class="fas fa-edit mr-1"></i> Editar
+        </a>
+        <a href="{% url 'cotizacion_clonar' cotizacion.pk %}" class="btn-secondary text-xs"
+           onclick="return confirm('¿Deseas clonar esta cotización?')">
+            <i class="fas fa-copy mr-1"></i> Clonar
+        </a>
+        <a href="{% url 'cotizacion_delete' cotizacion.pk %}" class="bg-red-500 hover:bg-red-600 text-white px-3 py-1.5 rounded-lg text-xs">
+            <i class="fas fa-trash mr-1"></i> Eliminar
+        </a>
+    </div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    {# ── Columna principal ── #}
+    <div class="lg:col-span-2 space-y-6">
+
+        {# Estado & Fechas #}
+        <div class="card p-6">
+            <div class="flex items-center gap-4 mb-4">
+                <span class="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-semibold
+                    {% if cotizacion.estado == 'aprobada' %}bg-green-100 text-green-700
+                    {% elif cotizacion.estado == 'rechazada' %}bg-red-100 text-red-700
+                    {% elif cotizacion.estado == 'enviada' %}bg-blue-100 text-blue-700
+                    {% elif cotizacion.estado == 'vencida' %}bg-gray-100 text-gray-500
+                    {% else %}bg-yellow-100 text-yellow-700{% endif %}">
+                    {{ cotizacion.get_estado_display }}
+                </span>
+                <span class="text-sm text-gray-500">
+                    Emitida: {{ cotizacion.fecha_emision|date:"d M Y" }} · Válida hasta: {{ cotizacion.fecha_vencimiento|date:"d M Y" }}
+                </span>
+            </div>
+
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                <div><span class="text-gray-500 block">Proyecto</span>
+                    <a href="{% url 'proyecto_detail' cotizacion.proyecto.pk %}" class="text-solar-600 font-medium hover:underline">{{ cotizacion.proyecto.nombre }}</a>
+                </div>
+                <div><span class="text-gray-500 block">Cliente</span>
+                    <a href="{% url 'cliente_detail' cotizacion.proyecto.cliente.pk %}" class="font-medium hover:underline">{{ cotizacion.proyecto.cliente.nombre }}</a>
+                </div>
+                <div><span class="text-gray-500 block">Tipo de cliente</span><span class="font-medium">{{ cotizacion.get_tipo_cliente_display }}</span></div>
+                <div><span class="text-gray-500 block">Vendedor</span><span class="font-medium">{{ cotizacion.creado_por.get_full_name|default:cotizacion.creado_por.username }}</span></div>
+            </div>
+        </div>
+
+        {# Tabla de ítems #}
+        {% if cotizacion.usar_total_manual %}
+        <div class="card p-6">
+            <div class="flex items-center gap-2 mb-2">
+                <i class="fas fa-edit text-solar-500"></i>
+                <h2 class="font-semibold text-gray-800">Total Ingresado Manualmente</h2>
+            </div>
+            <p class="text-gray-500 text-sm">El valor total de esta cotización fue ingresado manualmente sin desglose de ítems.</p>
+        </div>
+        {% else %}
+        <div class="card overflow-hidden">
+            <div class="px-6 py-4 bg-gray-50 border-b">
+                <h2 class="font-semibold text-gray-800"><i class="fas fa-boxes mr-2 text-solar-500"></i> Ítems de la Cotización</h2>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="min-w-full">
+                    <thead class="bg-gray-50 text-xs text-gray-500 uppercase">
+                        <tr>
+                            <th class="px-6 py-3 text-left">#</th>
+                            <th class="px-6 py-3 text-left">Equipo</th>
+                            <th class="px-6 py-3 text-center">Cantidad</th>
+                            <th class="px-6 py-3 text-right">Precio Unit.</th>
+                            <th class="px-6 py-3 text-right">Descuento</th>
+                            <th class="px-6 py-3 text-right">Subtotal</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100">
+                        {% for item in cotizacion.items.all %}
+                        <tr>
+                            <td class="px-6 py-3 text-sm text-gray-400">{{ forloop.counter }}</td>
+                            <td class="px-6 py-3">
+                                <div class="text-sm font-medium">{{ item.equipo.nombre }}</div>
+                                <div class="text-xs text-gray-400">{{ item.equipo.sku }} · {{ item.equipo.get_categoria_display }}</div>
+                            </td>
+                            <td class="px-6 py-3 text-center text-sm">{{ item.cantidad }}</td>
+                            <td class="px-6 py-3 text-right text-sm">${{ item.precio_unitario|floatformat:0 }}</td>
+                            <td class="px-6 py-3 text-right text-sm">{{ item.descuento_item }}%</td>
+                            <td class="px-6 py-3 text-right text-sm font-semibold">${{ item.subtotal|floatformat:0 }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="6" class="px-6 py-8 text-center text-gray-400">Sin ítems</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+
+        {# Gráficos interactivos #}
+        <div class="card p-6">
+            <h2 class="font-semibold text-gray-800 mb-4"><i class="fas fa-chart-pie mr-2 text-solar-500"></i> Distribución de Costos</h2>
+            <div id="chartCostDist" class="w-full" style="height:340px;"></div>
+        </div>
+
+        {# Dimensionamiento - Resultados #}
+        {% if proyecto.potencia_pico_kwp %}
+        <div class="card p-6">
+            <h2 class="font-semibold text-gray-800 mb-4"><i class="fas fa-calculator mr-2 text-solar-500"></i> Resultados del Dimensionamiento</h2>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                <div class="stat-card text-center bg-gradient-to-br from-solar-50 to-solar-100">
+                    <i class="fas fa-solar-panel text-solar-500 text-xl mb-1"></i>
+                    <p class="text-2xl font-bold text-solar-700">{{ proyecto.potencia_pico_kwp }}</p>
+                    <p class="text-xs text-gray-600">kWp Potencia pico</p>
+                </div>
+                <div class="stat-card text-center">
+                    <i class="fas fa-th text-blue-500 text-xl mb-1"></i>
+                    <p class="text-2xl font-bold text-gray-900">{{ proyecto.numero_paneles }}</p>
+                    <p class="text-xs text-gray-600">Paneles</p>
+                </div>
+                <div class="stat-card text-center">
+                    <i class="fas fa-bolt text-green-500 text-xl mb-1"></i>
+                    <p class="text-2xl font-bold text-green-600">{{ proyecto.generacion_mensual_kwh|floatformat:0 }}</p>
+                    <p class="text-xs text-gray-600">kWh/mes generados</p>
+                </div>
+                {% if proyecto.porcentaje_cobertura %}
+                <div class="stat-card text-center">
+                    <i class="fas fa-chart-pie text-purple-500 text-xl mb-1"></i>
+                    <p class="text-2xl font-bold text-purple-600">{{ proyecto.porcentaje_cobertura|floatformat:0 }}%</p>
+                    <p class="text-xs text-gray-600">Cobertura solar</p>
+                </div>
+                {% endif %}
+            </div>
+            {% if proyecto.capacidad_baterias_kwh %}
+            <div class="p-3 bg-orange-50 rounded-lg border border-orange-200">
+                <p class="text-sm text-orange-800">
+                    <i class="fas fa-battery-full mr-1"></i>
+                    <strong>Banco de baterías:</strong> {{ proyecto.capacidad_baterias_kwh }} kWh · Autonomía: {{ proyecto.autonomia_dias }} días
+                </p>
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        {# Gráficos de dimensionamiento #}
+        {% if proyecto.potencia_pico_kwp %}
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="card p-6">
+                <h3 class="font-semibold text-gray-800 mb-4">Consumo vs Generación Solar</h3>
+                <div id="chartConsumo" style="height:300px;"></div>
+            </div>
+            {% if proyeccion %}
+            <div class="card p-6">
+                <h3 class="font-semibold text-gray-800 mb-4">Retorno de inversión acumulado</h3>
+                <div id="chartROI" style="height:300px;"></div>
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="card p-6">
+                <h3 class="font-semibold text-gray-800 mb-4">Radiación solar mensual (PVGIS)</h3>
+                <div id="chartRadiacion" style="height:300px;"></div>
+            </div>
+            <div class="card p-6">
+                <h3 class="font-semibold text-gray-800 mb-4">HSP mensual (Horas Solar Pico)</h3>
+                <div id="chartHSP" style="height:300px;"></div>
+            </div>
+        </div>
+        {% endif %}
+
+        {# Condiciones #}
+        {% if cotizacion.condiciones %}
+        <div class="card p-6">
+            <h2 class="font-semibold text-gray-800 mb-3"><i class="fas fa-list-check mr-2 text-solar-500"></i> Condiciones Comerciales</h2>
+            <div class="prose prose-sm max-w-none text-gray-600 whitespace-pre-line">{{ cotizacion.condiciones }}</div>
+        </div>
+        {% endif %}
+    </div>
+
+    {# ── Sidebar Resumen Financiero ── #}
+    <div class="space-y-6">
+        <div class="card p-6 bg-gradient-to-br from-solar-50 to-amber-50 border border-solar-200">
+            <h2 class="font-semibold text-gray-800 mb-4"><i class="fas fa-calculator mr-2 text-solar-500"></i> Resumen Financiero</h2>
+            <div class="space-y-3 text-sm">
+                {% if cotizacion.usar_total_manual %}
+                <div class="flex justify-between"><span class="text-gray-600">IVA ({{ cotizacion.iva_porcentaje|floatformat:0 }}%)</span><span class="font-medium">${{ cotizacion.iva_monto|floatformat:0|intcomma }}</span></div>
+                <div class="flex justify-between text-xl font-bold pt-2">
+                    <span>Total</span>
+                    <span class="text-solar-600">${{ cotizacion.total|floatformat:0|intcomma }}</span>
+                </div>
+                <p class="text-xs text-gray-400 italic">Total ingresado manualmente</p>
+                {% else %}
+                <div class="flex justify-between"><span class="text-gray-600">Subtotal equipos</span><span class="font-medium">${{ cotizacion.subtotal|floatformat:0|intcomma }}</span></div>
+                <div class="flex justify-between"><span class="text-gray-600">Instalación</span><span class="font-medium">${{ cotizacion.costo_instalacion|floatformat:0|intcomma }}</span></div>
+                <div class="flex justify-between"><span class="text-gray-600">Transporte</span><span class="font-medium">${{ cotizacion.costo_transporte|floatformat:0|intcomma }}</span></div>
+                {% if cotizacion.descuento_porcentaje %}
+                <div class="flex justify-between"><span class="text-gray-600">Descuento ({{ cotizacion.descuento_porcentaje }}%)</span><span class="font-medium text-red-500">-${{ cotizacion.descuento_monto|floatformat:0|intcomma }}</span></div>
+                {% endif %}
+                <hr class="border-solar-200">
+                <div class="flex justify-between"><span class="text-gray-600">IVA ({{ cotizacion.iva_porcentaje|floatformat:0 }}%)</span><span class="font-medium">${{ cotizacion.iva_monto|floatformat:0|intcomma }}</span></div>
+                <div class="flex justify-between text-xl font-bold pt-2">
+                    <span>Total</span>
+                    <span class="text-solar-600">${{ cotizacion.total|floatformat:0|intcomma }}</span>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        {# Info del proyecto asociado #}
+        <div class="card p-6">
+            <h3 class="font-semibold text-gray-800 mb-3"><i class="fas fa-solar-panel mr-2 text-solar-500"></i> Proyecto</h3>
+            <dl class="space-y-2 text-sm">
+                <div class="flex justify-between">
+                    <dt class="text-gray-500">Código</dt>
+                    <dd class="font-mono text-xs">{{ cotizacion.proyecto.codigo }}</dd>
+                </div>
+                <div class="flex justify-between">
+                    <dt class="text-gray-500">Tipo</dt>
+                    <dd>{{ cotizacion.proyecto.get_tipo_sistema_display }}</dd>
+                </div>
+                {% if cotizacion.proyecto.potencia_pico_kwp %}
+                <div class="flex justify-between">
+                    <dt class="text-gray-500">Potencia</dt>
+                    <dd class="font-semibold">{{ cotizacion.proyecto.potencia_pico_kwp|floatformat:2 }} kWp</dd>
+                </div>
+                {% endif %}
+                {% if cotizacion.proyecto.generacion_mensual_kwh %}
+                <div class="flex justify-between">
+                    <dt class="text-gray-500">Generación est.</dt>
+                    <dd>{{ cotizacion.proyecto.generacion_mensual_kwh|floatformat:0 }} kWh/mes</dd>
+                </div>
+                {% endif %}
+            </dl>
+        </div>
+
+        {# Historial #}
+        <div class="card p-6">
+            <h3 class="font-semibold text-gray-800 mb-3"><i class="fas fa-clock-rotate-left mr-2 text-solar-500"></i> Historial</h3>
+            <ul class="text-sm text-gray-600 space-y-2">
+                <li><span class="text-gray-400">Creada:</span> {{ cotizacion.fecha_creacion|date:"d/m/Y H:i" }}</li>
+                <li><span class="text-gray-400">Modificada:</span> {{ cotizacion.fecha_actualizacion|date:"d/m/Y H:i" }}</li>
+            </ul>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{% localize off %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+    const plotConfig = {responsive: true, displayModeBar: false};
+    const plotFont = {family: 'Inter, sans-serif', size: 12};
+    const transparent = 'transparent';
+
+    fetch("{% url 'cotizacion_charts_data' cotizacion.pk %}")
+        .then(r => {
+            if (!r.ok) throw new Error('HTTP ' + r.status);
+            return r.json();
+        })
+        .then(data => {
+            // 1. Cost Distribution Pie
+            const dist = data.costo_por_componente;
+            if (dist && dist.labels && dist.labels.length) {
+                Plotly.newPlot('chartCostDist', [{
+                    labels: dist.labels,
+                    values: dist.values,
+                    type: 'pie',
+                    hole: 0.45,
+                    marker: { colors: ['#f59e0b','#10b981','#3b82f6','#8b5cf6','#ef4444','#06b6d4','#ec4899','#84cc16'] },
+                    textinfo: 'label+percent',
+                    textposition: 'outside'
+                }], {
+                    margin: { t: 10, b: 10, l: 10, r: 10 },
+                    showlegend: false,
+                    font: plotFont
+                }, plotConfig);
+            } else {
+                document.getElementById('chartCostDist').innerHTML =
+                    '<p class="text-center text-gray-400 py-8">No hay datos de costos para mostrar.</p>';
+            }
+
+            // 2. Consumption vs Generation Bar Chart
+            const consumoEl = document.getElementById('chartConsumo');
+            if (consumoEl && data.consumo_comparacion) {
+                const cc = data.consumo_comparacion;
+                Plotly.newPlot('chartConsumo', [{
+                    x: ['Consumo actual', 'Generación solar', 'Consumo con solar'],
+                    y: [cc.actual, cc.generacion, cc.con_solar],
+                    type: 'bar',
+                    marker: { color: ['#ef4444', '#22c55e', '#f59e0b'] },
+                    text: [
+                        cc.actual.toFixed(0) + ' kWh',
+                        cc.generacion.toFixed(0) + ' kWh',
+                        cc.con_solar.toFixed(0) + ' kWh'
+                    ],
+                    textposition: 'outside',
+                }], {
+                    margin: {t: 20, b: 40, l: 50, r: 20},
+                    yaxis: {title: 'kWh/mes'},
+                    paper_bgcolor: transparent,
+                    plot_bgcolor: transparent,
+                    font: plotFont,
+                }, plotConfig);
+            }
+
+            // 3. ROI Chart
+            const roiEl = document.getElementById('chartROI');
+            if (roiEl && data.proyeccion_financiera) {
+                const pf = data.proyeccion_financiera;
+                Plotly.newPlot('chartROI', [{
+                    x: pf.anos,
+                    y: pf.ahorro_acumulado,
+                    type: 'scatter',
+                    mode: 'lines+markers',
+                    name: 'Ahorro acumulado',
+                    line: {color: '#22c55e', width: 3},
+                    fill: 'tozeroy',
+                    fillcolor: 'rgba(34,197,94,0.1)',
+                }, {
+                    x: [0, 25],
+                    y: [0, 0],
+                    type: 'scatter',
+                    mode: 'lines',
+                    name: 'Punto de equilibrio',
+                    line: {color: '#ef4444', width: 2, dash: 'dash'},
+                }], {
+                    margin: {t: 20, b: 40, l: 70, r: 20},
+                    xaxis: {title: 'Años'},
+                    yaxis: {title: 'COP'},
+                    showlegend: true,
+                    legend: {x: 0, y: 1},
+                    paper_bgcolor: transparent,
+                    plot_bgcolor: transparent,
+                    font: plotFont,
+                }, plotConfig);
+            }
+
+            // 4. Radiation Chart
+            const radEl = document.getElementById('chartRadiacion');
+            if (radEl && data.radiacion_mensual && data.radiacion_mensual.length) {
+                const rad = data.radiacion_mensual;
+                const minR = Math.min(...rad);
+                const radColors = rad.map(r => r === minR ? '#ef4444' : '#f59e0b');
+                Plotly.newPlot('chartRadiacion', [{
+                    x: meses,
+                    y: rad,
+                    type: 'bar',
+                    marker: {color: radColors},
+                    text: rad.map(r => r.toFixed(1)),
+                    textposition: 'outside',
+                }], {
+                    margin: {t: 20, b: 40, l: 50, r: 20},
+                    yaxis: {title: 'kWh/m²'},
+                    paper_bgcolor: transparent,
+                    plot_bgcolor: transparent,
+                    font: plotFont,
+                }, plotConfig);
+            } else if (radEl) {
+                radEl.innerHTML = '<p class="text-center text-gray-400 py-8">Sin datos de radiación disponibles.</p>';
+            }
+
+            // 5. HSP Chart
+            const hspEl = document.getElementById('chartHSP');
+            if (hspEl && data.hsp_mensual && data.hsp_mensual.length) {
+                const hsp = data.hsp_mensual;
+                const hspProm = data.hsp_promedio || (hsp.reduce((a, b) => a + b, 0) / hsp.length);
+                const hspMin = Math.min(...hsp);
+                const hspMax = Math.max(...hsp);
+                const hspColors = hsp.map(h => h === hspMin ? '#ef4444' : h === hspMax ? '#22c55e' : '#3b82f6');
+                Plotly.newPlot('chartHSP', [{
+                    x: meses,
+                    y: hsp,
+                    type: 'bar',
+                    marker: {color: hspColors},
+                    text: hsp.map(h => h.toFixed(2)),
+                    textposition: 'outside',
+                    name: 'HSP',
+                }, {
+                    x: meses,
+                    y: Array(12).fill(hspProm),
+                    type: 'scatter',
+                    mode: 'lines',
+                    name: 'Promedio (' + hspProm.toFixed(2) + ' h)',
+                    line: {color: '#f59e0b', width: 2, dash: 'dash'},
+                }], {
+                    margin: {t: 20, b: 40, l: 50, r: 20},
+                    yaxis: {title: 'Horas/día'},
+                    showlegend: true,
+                    legend: {x: 0, y: 1},
+                    paper_bgcolor: transparent,
+                    plot_bgcolor: transparent,
+                    font: plotFont,
+                }, plotConfig);
+            } else if (hspEl) {
+                hspEl.innerHTML = '<p class="text-center text-gray-400 py-8">Sin datos de HSP disponibles.</p>';
+            }
+        })
+        .catch(err => {
+            console.error('Error cargando gráficos:', err);
+            document.getElementById('chartCostDist').innerHTML =
+                '<p class="text-center text-gray-400 py-8">No se pudieron cargar los datos del gráfico.</p>';
+        });
+});
+</script>
+{% endlocalize %}
+{% endblock %}

@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+{% block title %}Eliminar tipo de carga - SolarQuote{% endblock %}
+{% block content %}
+<div class="max-w-lg mx-auto mt-12">
+    <div class="card p-8 text-center">
+        <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <i class="fas fa-exclamation-triangle text-red-500 text-2xl"></i>
+        </div>
+        <h2 class="text-xl font-bold text-gray-900 mb-2">¿Eliminar tipo de carga?</h2>
+        <p class="text-sm text-gray-600 mb-6">
+            Estás a punto de eliminar <strong>{{ object.nombre }}</strong> ({{ object.potencia_nominal_w|floatformat:0 }}W).
+            <br><span class="text-red-500 text-xs">Las cargas de proyectos asociadas no se eliminarán.</span>
+        </p>
+        <form method="post" class="flex items-center justify-center gap-3">
+            {% csrf_token %}
+            <a href="{% url 'cargatipo_list' %}" class="btn-secondary">Cancelar</a>
+            <button type="submit" class="btn-danger"><i class="fas fa-trash mr-2"></i> Sí, eliminar</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,185 @@
+{% extends 'base.html' %}
+{% block title %}Dashboard - SolarQuote{% endblock %}
+
+{% block content %}
+<!-- Header -->
+<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-8">
+    <div>
+        <h1 class="text-2xl font-bold text-gray-900">Dashboard</h1>
+        <p class="text-sm text-gray-500 mt-1">Resumen general de tu actividad</p>
+    </div>
+    <div class="mt-4 sm:mt-0 flex gap-2">
+        <a href="{% url 'cliente_create' %}" class="btn-primary">
+            <i class="fas fa-plus mr-2"></i> Nuevo Cliente
+        </a>
+        <a href="{% url 'proyecto_create' %}" class="btn-success">
+            <i class="fas fa-solar-panel mr-2"></i> Nuevo Proyecto
+        </a>
+    </div>
+</div>
+
+<!-- Stats Cards -->
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+    <div class="stat-card">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-sm text-gray-500">Proyectos activos</p>
+                <p class="text-3xl font-bold text-gray-900 mt-1">{{ stats.proyectos_activos }}</p>
+            </div>
+            <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                <i class="fas fa-solar-panel text-blue-600 text-xl"></i>
+            </div>
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-sm text-gray-500">Total clientes</p>
+                <p class="text-3xl font-bold text-gray-900 mt-1">{{ stats.total_clientes }}</p>
+            </div>
+            <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                <i class="fas fa-users text-green-600 text-xl"></i>
+            </div>
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-sm text-gray-500">Cotizaciones</p>
+                <p class="text-3xl font-bold text-gray-900 mt-1">{{ stats.total_cotizaciones }}</p>
+            </div>
+            <div class="w-12 h-12 bg-solar-100 rounded-lg flex items-center justify-center">
+                <i class="fas fa-file-invoice-dollar text-solar-600 text-xl"></i>
+            </div>
+        </div>
+        <p class="text-xs text-gray-400 mt-2">
+            {{ stats.cotizaciones_pendientes }} pendientes · {{ stats.cotizaciones_aprobadas }} aprobadas
+        </p>
+    </div>
+
+    <div class="stat-card">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-sm text-gray-500">Valor en cotizaciones</p>
+                <p class="text-2xl font-bold text-gray-900 mt-1">${{ stats.valor_cotizaciones|floatformat:0 }}</p>
+            </div>
+            <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+                <i class="fas fa-coins text-purple-600 text-xl"></i>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <!-- Recent Projects -->
+    <div class="card">
+        <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+            <h2 class="text-lg font-semibold text-gray-900">Proyectos recientes</h2>
+            <a href="{% url 'proyecto_list' %}" class="text-sm text-solar-600 hover:text-solar-700">Ver todos →</a>
+        </div>
+        <div class="divide-y divide-gray-100">
+            {% for proyecto in proyectos_recientes %}
+            <a href="{% url 'proyecto_detail' proyecto.pk %}" class="block px-6 py-4 hover:bg-gray-50 transition-colors">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-900">{{ proyecto.nombre }}</p>
+                        <p class="text-xs text-gray-500 mt-0.5">
+                            {{ proyecto.codigo }} · {{ proyecto.cliente.nombre }}
+                        </p>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium
+                            {% if proyecto.tipo_sistema == 'on_grid' %}bg-blue-100 text-blue-700
+                            {% elif proyecto.tipo_sistema == 'off_grid' %}bg-orange-100 text-orange-700
+                            {% else %}bg-purple-100 text-purple-700{% endif %}">
+                            {{ proyecto.get_tipo_sistema_display }}
+                        </span>
+                        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium
+                            {% if proyecto.estado == 'completado' %}bg-green-100 text-green-700
+                            {% elif proyecto.estado == 'cancelado' %}bg-red-100 text-red-700
+                            {% elif proyecto.estado == 'cotizado' %}bg-solar-100 text-solar-700
+                            {% else %}bg-gray-100 text-gray-700{% endif %}">
+                            {{ proyecto.get_estado_display }}
+                        </span>
+                    </div>
+                </div>
+            </a>
+            {% empty %}
+            <div class="px-6 py-8 text-center text-gray-400">
+                <i class="fas fa-solar-panel text-3xl mb-2"></i>
+                <p class="text-sm">No hay proyectos aún</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Recent Quotes -->
+    <div class="card">
+        <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+            <h2 class="text-lg font-semibold text-gray-900">Cotizaciones recientes</h2>
+            <a href="{% url 'cotizacion_list' %}" class="text-sm text-solar-600 hover:text-solar-700">Ver todas →</a>
+        </div>
+        <div class="divide-y divide-gray-100">
+            {% for cot in cotizaciones_recientes %}
+            <a href="{% url 'cotizacion_detail' cot.pk %}" class="block px-6 py-4 hover:bg-gray-50 transition-colors">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-900">{{ cot.numero }}</p>
+                        <p class="text-xs text-gray-500 mt-0.5">{{ cot.proyecto.cliente.nombre }}</p>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-sm font-semibold text-gray-900">${{ cot.total|floatformat:0 }}</p>
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium
+                            {% if cot.estado == 'aprobada' %}bg-green-100 text-green-700
+                            {% elif cot.estado == 'rechazada' %}bg-red-100 text-red-700
+                            {% elif cot.estado == 'enviada' %}bg-blue-100 text-blue-700
+                            {% else %}bg-gray-100 text-gray-700{% endif %}">
+                            {{ cot.get_estado_display }}
+                        </span>
+                    </div>
+                </div>
+            </a>
+            {% empty %}
+            <div class="px-6 py-8 text-center text-gray-400">
+                <i class="fas fa-file-invoice text-3xl mb-2"></i>
+                <p class="text-sm">No hay cotizaciones aún</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- Stock Alerts -->
+{% if equipos_sin_stock or equipos_bajo_stock %}
+<div class="mt-6 card">
+    <div class="px-6 py-4 border-b border-gray-200">
+        <h2 class="text-lg font-semibold text-gray-900">
+            <i class="fas fa-exclamation-triangle text-yellow-500 mr-2"></i>
+            Alertas de inventario
+        </h2>
+    </div>
+    <div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+        {% for equipo in equipos_sin_stock %}
+        <div class="flex items-center gap-3 p-3 bg-red-50 rounded-lg border border-red-200">
+            <i class="fas fa-times-circle text-red-500"></i>
+            <div class="flex-1">
+                <p class="text-sm font-medium text-red-800">{{ equipo.nombre }}</p>
+                <p class="text-xs text-red-600">Sin stock · {{ equipo.sku }}</p>
+            </div>
+        </div>
+        {% endfor %}
+        {% for equipo in equipos_bajo_stock %}
+        <div class="flex items-center gap-3 p-3 bg-yellow-50 rounded-lg border border-yellow-200">
+            <i class="fas fa-exclamation-circle text-yellow-500"></i>
+            <div class="flex-1">
+                <p class="text-sm font-medium text-yellow-800">{{ equipo.nombre }}</p>
+                <p class="text-xs text-yellow-600">Stock bajo: {{ equipo.stock }} uds · {{ equipo.sku }}</p>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+{% endblock %}

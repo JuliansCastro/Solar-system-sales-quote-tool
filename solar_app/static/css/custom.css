@@ -1,0 +1,12 @@
+/* Solar Quote Tool – Custom CSS Overrides */
+/* Most styling is handled by Tailwind CDN in base.html */
+
+/* Print styles for better PDF rendering */
+@media print {
+    .no-print {
+        display: none !important;
+    }
+    body {
+        font-size: 12pt;
+    }
+}

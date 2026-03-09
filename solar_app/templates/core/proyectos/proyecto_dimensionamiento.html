@@ -1,0 +1,346 @@
+{% extends 'base.html' %}
+{% load l10n humanize %}
+{% block title %}Dimensionamiento - {{ proyecto.nombre }} - SolarQuote{% endblock %}
+
+{% block content %}
+<div class="mb-6">
+    <a href="{% url 'proyecto_detail' proyecto.pk %}" class="text-sm text-gray-500 hover:text-solar-600">
+        <i class="fas fa-arrow-left mr-1"></i> Volver al proyecto
+    </a>
+    <h1 class="text-2xl font-bold text-gray-900 mt-2">
+        <i class="fas fa-calculator text-solar-500 mr-2"></i>Dimensionamiento del sistema
+    </h1>
+    <p class="text-sm text-gray-500">{{ proyecto.nombre }} · {{ proyecto.get_tipo_sistema_display }}</p>
+</div>
+
+{% if pvgis_data.error %}
+<div class="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg text-sm text-yellow-800">
+    <i class="fas fa-exclamation-triangle mr-1"></i> {{ pvgis_data.error }}
+    <br>Se usarán los valores de HSP configurados manualmente.
+</div>
+{% endif %}
+
+{% if resultado %}
+<!-- Results Summary -->
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+    <div class="stat-card text-center bg-gradient-to-br from-solar-50 to-solar-100">
+        <i class="fas fa-solar-panel text-solar-500 text-2xl mb-2"></i>
+        <p class="text-3xl font-bold text-solar-700">{{ resultado.potencia_pico_kwp }}</p>
+        <p class="text-sm text-gray-600">kWp Potencia pico</p>
+    </div>
+    <div class="stat-card text-center">
+        <i class="fas fa-th text-blue-500 text-2xl mb-2"></i>
+        <p class="text-3xl font-bold text-gray-900">{{ resultado.numero_paneles }}</p>
+        <p class="text-sm text-gray-600">Paneles de {{ resultado.potencia_panel_w|floatformat:0 }}W</p>
+    </div>
+    <div class="stat-card text-center">
+        <i class="fas fa-bolt text-green-500 text-2xl mb-2"></i>
+        <p class="text-3xl font-bold text-green-600">{{ resultado.generacion_mensual_kwh|floatformat:0 }}</p>
+        <p class="text-sm text-gray-600">kWh/mes generados</p>
+    </div>
+    {% if resultado.porcentaje_cobertura %}
+    <div class="stat-card text-center">
+        <i class="fas fa-chart-pie text-purple-500 text-2xl mb-2"></i>
+        <p class="text-3xl font-bold text-purple-600">{{ resultado.porcentaje_cobertura|floatformat:0 }}%</p>
+        <p class="text-sm text-gray-600">Cobertura solar</p>
+    </div>
+    {% endif %}
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+    <!-- Technical Details -->
+    <div class="card p-6">
+        <h3 class="text-lg font-semibold text-gray-800 mb-4">Datos técnicos</h3>
+        <dl class="space-y-3">
+            <div class="flex justify-between border-b border-gray-100 pb-2">
+                <dt class="text-sm text-gray-500">HSP promedio</dt>
+                <dd class="text-sm font-medium">{{ proyecto.hsp_promedio|floatformat:2 }} h/día</dd>
+            </div>
+            {% if proyecto.consumo_mensual_factura_kwh %}
+            <div class="flex justify-between border-b border-gray-100 pb-2">
+                <dt class="text-sm text-gray-500">Consumo mensual factura</dt>
+                <dd class="text-sm font-medium text-solar-700">{{ proyecto.consumo_mensual_factura_kwh }} kWh</dd>
+            </div>
+            <div class="flex justify-between border-b border-gray-100 pb-2">
+                <dt class="text-sm text-gray-500">Consumo diario (factura)</dt>
+                <dd class="text-sm font-medium text-solar-700">{{ proyecto.consumo_diario_kwh }} kWh/día</dd>
+            </div>
+            {% endif %}
+            <div class="flex justify-between border-b border-gray-100 pb-2">
+                <dt class="text-sm text-gray-500">Consumo mensual {% if proyecto.consumo_mensual_factura_kwh %}(cliente){% else %}usado{% endif %}</dt>
+                <dd class="text-sm font-medium">{{ proyecto.consumo_mensual_efectivo_kwh }} kWh</dd>
+            </div>
+            <div class="flex justify-between border-b border-gray-100 pb-2">
+                <dt class="text-sm text-gray-500">Generación mensual</dt>
+                <dd class="text-sm font-medium text-green-600">{{ resultado.generacion_mensual_kwh|floatformat:0 }} kWh</dd>
+            </div>
+            {% if resultado.area_requerida_m2 %}
+            <div class="flex justify-between border-b border-gray-100 pb-2">
+                <dt class="text-sm text-gray-500">Área requerida</dt>
+                <dd class="text-sm font-medium">{{ resultado.area_requerida_m2 }} m²</dd>
+            </div>
+            {% endif %}
+            {% if resultado.inversor_potencia_kw %}
+            <div class="flex justify-between border-b border-gray-100 pb-2">
+                <dt class="text-sm text-gray-500">Inversor recomendado</dt>
+                <dd class="text-sm font-medium">{{ resultado.inversor_potencia_kw }} kW</dd>
+            </div>
+            {% endif %}
+            {% if resultado.co2_evitado_ton_ano %}
+            <div class="flex justify-between">
+                <dt class="text-sm text-gray-500">CO₂ evitado por año</dt>
+                <dd class="text-sm font-medium text-green-600">{{ resultado.co2_evitado_ton_ano }} ton</dd>
+            </div>
+            {% endif %}
+        </dl>
+    </div>
+
+    <!-- Financial Summary -->
+    <div class="card p-6">
+        <h3 class="text-lg font-semibold text-gray-800 mb-4">
+            <i class="fas fa-coins text-solar-500 mr-2"></i>Análisis financiero
+        </h3>
+        <dl class="space-y-3">
+            {% if resultado.costo_estimado_sistema %}
+            <div class="flex justify-between border-b border-gray-100 pb-2">
+                <dt class="text-sm text-gray-500">Inversión estimada</dt>
+                <dd class="text-sm font-bold text-gray-900">${{ resultado.costo_estimado_sistema|floatformat:0|intcomma }}</dd>
+            </div>
+            {% endif %}
+            {% if resultado.ahorro_mensual_cop %}
+            <div class="flex justify-between border-b border-gray-100 pb-2">
+                <dt class="text-sm text-gray-500">Ahorro mensual</dt>
+                <dd class="text-sm font-bold text-green-600">${{ resultado.ahorro_mensual_cop|floatformat:0|intcomma }}</dd>
+            </div>
+            <div class="flex justify-between border-b border-gray-100 pb-2">
+                <dt class="text-sm text-gray-500">Ahorro anual</dt>
+                <dd class="text-sm font-bold text-green-600">${{ resultado.ahorro_anual_cop|floatformat:0|intcomma }}</dd>
+            </div>
+            {% endif %}
+            {% if resultado.roi_anos %}
+            <div class="flex justify-between border-b border-gray-100 pb-2">
+                <dt class="text-sm text-gray-500">Retorno de inversión</dt>
+                <dd class="text-sm font-bold text-solar-600">{{ resultado.roi_anos }} años</dd>
+            </div>
+            {% endif %}
+            {% if resultado.ahorro_acumulado_25_anos %}
+            <div class="flex justify-between">
+                <dt class="text-sm text-gray-500">Ahorro acumulado (25 años)</dt>
+                <dd class="text-sm font-bold text-green-700">${{ resultado.ahorro_acumulado_25_anos|floatformat:0|intcomma }}</dd>
+            </div>
+            {% endif %}
+        </dl>
+
+        {% if resultado.roi_anos %}
+        <div class="mt-4 p-4 bg-green-50 rounded-lg border border-green-200">
+            <p class="text-sm text-green-800">
+                <i class="fas fa-check-circle mr-1"></i>
+                <strong>La inversión se recupera en {{ resultado.roi_anos }} años.</strong>
+                Después, todo es ganancia durante los {{ resultado.roi_anos|floatformat:0 }} años restantes de vida útil.
+            </p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Charts -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+    <div class="card p-6">
+        <h3 class="text-lg font-semibold text-gray-800 mb-4">Consumo vs Generación Solar</h3>
+        <div id="chart-consumo" style="height:300px;"></div>
+    </div>
+    {% if proyeccion %}
+    <div class="card p-6">
+        <h3 class="text-lg font-semibold text-gray-800 mb-4">Retorno de inversión acumulado</h3>
+        <div id="chart-roi" style="height:300px;"></div>
+    </div>
+    {% endif %}
+</div>
+
+{% if pvgis_data.radiacion_mensual %}
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+    <div class="card p-6">
+        <h3 class="text-lg font-semibold text-gray-800 mb-4">Radiación solar mensual (PVGIS)</h3>
+        <div id="chart-radiacion" style="height:300px;"></div>
+    </div>
+    <div class="card p-6">
+        <h3 class="text-lg font-semibold text-gray-800 mb-4">HSP - Horas Solar Pico (PVGIS)</h3>
+        <div id="chart-hsp" style="height:300px;"></div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Equipment Suggestions -->
+{% if sugerencias %}
+<div class="card mb-6">
+    <div class="px-6 py-4 border-b border-gray-200">
+        <h3 class="text-lg font-semibold text-gray-800">
+            <i class="fas fa-lightbulb text-solar-500 mr-2"></i>Equipos sugeridos del inventario
+        </h3>
+    </div>
+    <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200 text-sm">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">Componente</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">Equipo sugerido</th>
+                    <th class="px-6 py-3 text-center text-xs font-medium text-gray-500">Cantidad</th>
+                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500">Precio unit.</th>
+                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500">Subtotal</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+                {% for key, sug in sugerencias.items %}
+                <tr>
+                    <td class="px-6 py-3 font-medium capitalize">{{ key }}</td>
+                    <td class="px-6 py-3">
+                        <a href="{% url 'equipo_detail' sug.equipo.pk %}" class="text-solar-600 hover:underline">
+                            {{ sug.equipo.fabricante }} {{ sug.equipo.modelo }}
+                        </a>
+                        <span class="text-xs text-gray-400 ml-1">{{ sug.equipo.potencia_nominal_w }}W</span>
+                    </td>
+                    <td class="px-6 py-3 text-center">{{ sug.cantidad }}</td>
+                    <td class="px-6 py-3 text-right">${{ sug.equipo.precio_venta|floatformat:0 }}</td>
+                    <td class="px-6 py-3 text-right font-semibold">${{ sug.equipo.precio_venta|floatformat:0 }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+<!-- Actions -->
+<div class="flex items-center justify-center gap-4 mb-6">
+    <a href="{% url 'proyecto_detail' proyecto.pk %}" class="btn-secondary">
+        <i class="fas fa-arrow-left mr-2"></i> Volver al proyecto
+    </a>
+    <a href="{% url 'cotizacion_crear_desde_proyecto' proyecto.pk %}" class="btn-success text-lg px-8 py-3">
+        <i class="fas fa-file-invoice-dollar mr-2"></i> Generar cotización con estos equipos
+    </a>
+</div>
+
+{% else %}
+<div class="card p-12 text-center">
+    <i class="fas fa-exclamation-circle text-yellow-500 text-4xl mb-4"></i>
+    <p class="text-lg text-gray-600">No se pudo realizar el dimensionamiento.</p>
+    <p class="text-sm text-gray-400 mt-2">Verifica que el proyecto tenga datos completos.</p>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+{% if resultado %}
+{% localize off %}
+<script>
+// Consumption comparison chart
+const consumoActual = {{ cliente.consumo_mensual_kwh }};
+const generacionSolar = {{ resultado.generacion_mensual_kwh }};
+
+Plotly.newPlot('chart-consumo', [{
+    x: ['Consumo actual', 'Generación solar', 'Consumo con solar'],
+    y: [consumoActual, generacionSolar, Math.max(0, consumoActual - generacionSolar)],
+    type: 'bar',
+    marker: {
+        color: ['#ef4444', '#22c55e', '#f59e0b'],
+        borderRadius: 4,
+    },
+    text: [consumoActual.toFixed(0) + ' kWh', generacionSolar.toFixed(0) + ' kWh', 
+           Math.max(0, consumoActual - generacionSolar).toFixed(0) + ' kWh'],
+    textposition: 'outside',
+}], {
+    margin: {t: 20, b: 40, l: 50, r: 20},
+    yaxis: {title: 'kWh/mes'},
+    paper_bgcolor: 'transparent',
+    plot_bgcolor: 'transparent',
+    font: {family: 'Inter, sans-serif', size: 12},
+}, {responsive: true, displayModeBar: false});
+
+{% if proyeccion %}
+// ROI chart
+const proyeccionData = {{ proyeccion|safe }};
+
+Plotly.newPlot('chart-roi', [{
+    x: proyeccionData.anos,
+    y: proyeccionData.ahorro_acumulado,
+    type: 'scatter',
+    mode: 'lines+markers',
+    name: 'Ahorro acumulado',
+    line: {color: '#22c55e', width: 3},
+    fill: 'tozeroy',
+    fillcolor: 'rgba(34,197,94,0.1)',
+}, {
+    x: [0, 25],
+    y: [0, 0],
+    type: 'scatter',
+    mode: 'lines',
+    name: 'Punto de equilibrio',
+    line: {color: '#ef4444', width: 2, dash: 'dash'},
+}], {
+    margin: {t: 20, b: 40, l: 70, r: 20},
+    xaxis: {title: 'Años'},
+    yaxis: {title: 'COP'},
+    showlegend: true,
+    legend: {x: 0, y: 1},
+    paper_bgcolor: 'transparent',
+    plot_bgcolor: 'transparent',
+    font: {family: 'Inter, sans-serif', size: 12},
+}, {responsive: true, displayModeBar: false});
+{% endif %}
+
+{% if pvgis_data.radiacion_mensual %}
+// PVGIS radiation chart
+const meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+const radiacion = [{% for m in pvgis_data.radiacion_mensual %}{{ m.radiacion_kwh_m2 }}{% if not forloop.last %},{% endif %}{% endfor %}];
+const minRad = Math.min(...radiacion);
+const colors = radiacion.map(r => r === minRad ? '#ef4444' : '#f59e0b');
+
+Plotly.newPlot('chart-radiacion', [{
+    x: meses,
+    y: radiacion,
+    type: 'bar',
+    marker: {color: colors},
+    text: radiacion.map(r => r.toFixed(1)),
+    textposition: 'outside',
+}], {
+    margin: {t: 20, b: 40, l: 50, r: 20},
+    yaxis: {title: 'kWh/m²'},
+    paper_bgcolor: 'transparent',
+    plot_bgcolor: 'transparent',
+    font: {family: 'Inter, sans-serif', size: 12},
+}, {responsive: true, displayModeBar: false});
+
+// HSP monthly chart
+const hsp = [{% for m in pvgis_data.radiacion_mensual %}{{ m.hsp }}{% if not forloop.last %},{% endif %}{% endfor %}];
+const hspPromedio = hsp.reduce((a, b) => a + b, 0) / hsp.length;
+const hspColors = hsp.map(h => h === Math.min(...hsp) ? '#ef4444' : h === Math.max(...hsp) ? '#22c55e' : '#3b82f6');
+
+Plotly.newPlot('chart-hsp', [{
+    x: meses,
+    y: hsp,
+    type: 'bar',
+    marker: {color: hspColors},
+    text: hsp.map(h => h.toFixed(2)),
+    textposition: 'outside',
+    name: 'HSP',
+}, {
+    x: meses,
+    y: Array(12).fill(hspPromedio),
+    type: 'scatter',
+    mode: 'lines',
+    name: 'Promedio (' + hspPromedio.toFixed(2) + ' h)',
+    line: {color: '#f59e0b', width: 2, dash: 'dash'},
+}], {
+    margin: {t: 20, b: 40, l: 50, r: 20},
+    yaxis: {title: 'Horas/día'},
+    showlegend: true,
+    legend: {x: 0, y: 1},
+    paper_bgcolor: 'transparent',
+    plot_bgcolor: 'transparent',
+    font: {family: 'Inter, sans-serif', size: 12},
+}, {responsive: true, displayModeBar: false});
+{% endif %}
+</script>
+{% endlocalize %}
+{% endif %}
+{% endblock %}

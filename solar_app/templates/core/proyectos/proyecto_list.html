@@ -1,0 +1,119 @@
+{% extends 'base.html' %}
+{% block title %}Proyectos - SolarQuote{% endblock %}
+
+{% block content %}
+<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
+    <div>
+        <h1 class="text-2xl font-bold text-gray-900">Proyectos</h1>
+        <p class="text-sm text-gray-500 mt-1">Sistemas solares en diseño y ejecución</p>
+    </div>
+    <a href="{% url 'proyecto_create' %}" class="mt-4 sm:mt-0 btn-primary">
+        <i class="fas fa-plus mr-2"></i> Nuevo Proyecto
+    </a>
+</div>
+
+<!-- Filters -->
+<div class="card mb-6 p-4">
+    <form method="get" class="flex flex-wrap gap-4 items-end">
+        <div class="flex-1 min-w-[200px]">
+            <input type="text" name="q" value="{{ request.GET.q }}" placeholder="Buscar por código, nombre, cliente..."
+                   class="form-input">
+        </div>
+        <div>
+            <select name="tipo" class="form-select">
+                <option value="">Todos los tipos</option>
+                <option value="on_grid" {% if request.GET.tipo == 'on_grid' %}selected{% endif %}>On-Grid</option>
+                <option value="off_grid" {% if request.GET.tipo == 'off_grid' %}selected{% endif %}>Off-Grid</option>
+                <option value="hybrid" {% if request.GET.tipo == 'hybrid' %}selected{% endif %}>Híbrido</option>
+            </select>
+        </div>
+        <div>
+            <select name="estado" class="form-select">
+                <option value="">Todos los estados</option>
+                <option value="borrador" {% if request.GET.estado == 'borrador' %}selected{% endif %}>Borrador</option>
+                <option value="en_diseno" {% if request.GET.estado == 'en_diseno' %}selected{% endif %}>En diseño</option>
+                <option value="cotizado" {% if request.GET.estado == 'cotizado' %}selected{% endif %}>Cotizado</option>
+                <option value="aprobado" {% if request.GET.estado == 'aprobado' %}selected{% endif %}>Aprobado</option>
+            </select>
+        </div>
+        <button type="submit" class="btn-primary"><i class="fas fa-filter mr-1"></i> Filtrar</button>
+    </form>
+</div>
+
+<!-- Grid -->
+<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+    {% for proyecto in proyectos %}
+    <div class="card hover:shadow-md transition-shadow">
+        <div class="p-5">
+            <div class="flex items-center justify-between mb-3">
+                <span class="text-xs font-mono text-gray-400">{{ proyecto.codigo }}</span>
+                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium
+                    {% if proyecto.tipo_sistema == 'on_grid' %}bg-blue-100 text-blue-700
+                    {% elif proyecto.tipo_sistema == 'off_grid' %}bg-orange-100 text-orange-700
+                    {% else %}bg-purple-100 text-purple-700{% endif %}">
+                    {{ proyecto.get_tipo_sistema_display }}
+                </span>
+            </div>
+            <a href="{% url 'proyecto_detail' proyecto.pk %}" class="block">
+                <h3 class="text-lg font-semibold text-gray-900 hover:text-solar-600">{{ proyecto.nombre }}</h3>
+                <p class="text-sm text-gray-500 mt-1">
+                    <i class="fas fa-user text-xs mr-1"></i> {{ proyecto.cliente.nombre }}
+                </p>
+            </a>
+
+            {% if proyecto.potencia_pico_kwp %}
+            <div class="mt-4 grid grid-cols-2 gap-3">
+                <div class="text-center p-2 bg-gray-50 rounded">
+                    <p class="text-lg font-bold text-solar-600">{{ proyecto.potencia_pico_kwp }}</p>
+                    <p class="text-xs text-gray-500">kWp</p>
+                </div>
+                <div class="text-center p-2 bg-gray-50 rounded">
+                    <p class="text-lg font-bold text-gray-900">{{ proyecto.numero_paneles }}</p>
+                    <p class="text-xs text-gray-500">Paneles</p>
+                </div>
+            </div>
+            {% endif %}
+
+            <div class="mt-4 flex items-center justify-between">
+                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium
+                    {% if proyecto.estado == 'completado' %}bg-green-100 text-green-700
+                    {% elif proyecto.estado == 'cancelado' %}bg-red-100 text-red-700
+                    {% elif proyecto.estado == 'cotizado' %}bg-solar-100 text-solar-700
+                    {% elif proyecto.estado == 'aprobado' %}bg-emerald-100 text-emerald-700
+                    {% else %}bg-gray-100 text-gray-600{% endif %}">
+                    {{ proyecto.get_estado_display }}
+                </span>
+                <div class="flex items-center gap-2">
+                    <a href="{% url 'proyecto_clonar' proyecto.pk %}" title="Clonar proyecto"
+                       class="text-gray-400 hover:text-solar-600 transition-colors"
+                       onclick="return confirm('¿Deseas clonar este proyecto?')">
+                        <i class="fas fa-copy"></i>
+                    </a>
+                    <span class="text-xs text-gray-400">{{ proyecto.fecha_creacion|date:"d M Y" }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    <div class="col-span-full text-center py-16 text-gray-400">
+        <i class="fas fa-solar-panel text-5xl mb-4"></i>
+        <p class="text-lg">No hay proyectos</p>
+        <a href="{% url 'proyecto_create' %}" class="text-solar-600 hover:underline text-sm mt-2 inline-block">
+            Crear primer proyecto →
+        </a>
+    </div>
+    {% endfor %}
+</div>
+
+{% if is_paginated %}
+<div class="mt-6 flex items-center justify-center gap-2">
+    {% if page_obj.has_previous %}
+    <a href="?page={{ page_obj.previous_page_number }}" class="btn-secondary text-xs">← Anterior</a>
+    {% endif %}
+    <span class="text-sm text-gray-500">Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
+    {% if page_obj.has_next %}
+    <a href="?page={{ page_obj.next_page_number }}" class="btn-secondary text-xs">Siguiente →</a>
+    {% endif %}
+</div>
+{% endif %}
+{% endblock %}

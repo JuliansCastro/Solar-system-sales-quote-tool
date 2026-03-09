@@ -1,0 +1,165 @@
+{% extends "base.html" %}
+
+{% block title %}Configuración de Empresa - SolarQuote{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <!-- Header -->
+    <div class="mb-6">
+        <h1 class="text-2xl font-bold text-gray-900">
+            <i class="fas fa-sliders-h text-solar-600 mr-2"></i>
+            Configuración de Empresa
+        </h1>
+        <p class="text-sm text-gray-500 mt-1">
+            Estos datos se mostrarán en los reportes PDF/Excel y en el encabezado de la aplicación.
+        </p>
+    </div>
+
+    <form method="post" enctype="multipart/form-data" class="space-y-6">
+        {% csrf_token %}
+
+        <!-- Current logo preview -->
+        {% if settings_obj.logo %}
+        <div class="card p-6">
+            <h2 class="text-lg font-semibold text-gray-800 mb-3">
+                <i class="fas fa-image text-solar-500 mr-2"></i>Logo actual
+            </h2>
+            <div class="flex items-center gap-4">
+                <img src="{{ settings_obj.logo.url }}" alt="Logo" class="h-20 w-auto rounded-lg border border-gray-200 shadow-sm">
+                <p class="text-sm text-gray-500">{{ settings_obj.logo.name }}</p>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Company Identity -->
+        <div class="card p-6">
+            <h2 class="text-lg font-semibold text-gray-800 mb-4">
+                <i class="fas fa-building text-solar-500 mr-2"></i>Identidad de la Empresa
+            </h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label for="{{ form.name.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+                        {{ form.name.label }} <span class="text-red-500">*</span>
+                    </label>
+                    {{ form.name }}
+                    {% if form.name.errors %}
+                    <p class="text-red-500 text-xs mt-1">{{ form.name.errors.0 }}</p>
+                    {% endif %}
+                </div>
+                <div>
+                    <label for="{{ form.nit.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+                        {{ form.nit.label }}
+                    </label>
+                    {{ form.nit }}
+                    {% if form.nit.errors %}
+                    <p class="text-red-500 text-xs mt-1">{{ form.nit.errors.0 }}</p>
+                    {% endif %}
+                </div>
+                <div class="md:col-span-2">
+                    <label for="{{ form.slogan.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+                        {{ form.slogan.label }}
+                    </label>
+                    {{ form.slogan }}
+                    {% if form.slogan.errors %}
+                    <p class="text-red-500 text-xs mt-1">{{ form.slogan.errors.0 }}</p>
+                    {% endif %}
+                    <p class="text-xs text-gray-400 mt-1">{{ form.slogan.help_text }}</p>
+                </div>
+                <div class="md:col-span-2">
+                    <label for="{{ form.logo.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+                        {{ form.logo.label }}
+                    </label>
+                    {{ form.logo }}
+                    {% if form.logo.errors %}
+                    <p class="text-red-500 text-xs mt-1">{{ form.logo.errors.0 }}</p>
+                    {% endif %}
+                    <p class="text-xs text-gray-400 mt-1">{{ form.logo.help_text }}</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Contact Information -->
+        <div class="card p-6">
+            <h2 class="text-lg font-semibold text-gray-800 mb-4">
+                <i class="fas fa-address-card text-solar-500 mr-2"></i>Información de Contacto
+            </h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label for="{{ form.phone.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+                        {{ form.phone.label }}
+                    </label>
+                    {{ form.phone }}
+                    {% if form.phone.errors %}
+                    <p class="text-red-500 text-xs mt-1">{{ form.phone.errors.0 }}</p>
+                    {% endif %}
+                </div>
+                <div>
+                    <label for="{{ form.email.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+                        {{ form.email.label }}
+                    </label>
+                    {{ form.email }}
+                    {% if form.email.errors %}
+                    <p class="text-red-500 text-xs mt-1">{{ form.email.errors.0 }}</p>
+                    {% endif %}
+                </div>
+                <div class="md:col-span-2">
+                    <label for="{{ form.address.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+                        {{ form.address.label }}
+                    </label>
+                    {{ form.address }}
+                    {% if form.address.errors %}
+                    <p class="text-red-500 text-xs mt-1">{{ form.address.errors.0 }}</p>
+                    {% endif %}
+                </div>
+                <div>
+                    <label for="{{ form.website.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+                        {{ form.website.label }}
+                    </label>
+                    {{ form.website }}
+                    {% if form.website.errors %}
+                    <p class="text-red-500 text-xs mt-1">{{ form.website.errors.0 }}</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Preview -->
+        <div class="card p-6 bg-gray-50">
+            <h2 class="text-lg font-semibold text-gray-800 mb-3">
+                <i class="fas fa-eye text-solar-500 mr-2"></i>Vista previa (datos actuales)
+            </h2>
+            <div class="bg-white rounded-lg border border-gray-200 p-4">
+                <div class="flex items-center gap-3 mb-2">
+                    {% if settings_obj.logo %}
+                    <img src="{{ settings_obj.logo.url }}" alt="Logo" class="h-10 w-auto">
+                    {% else %}
+                    <div class="w-10 h-10 bg-solar-500 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-sun text-white text-xl"></i>
+                    </div>
+                    {% endif %}
+                    <div>
+                        <h3 class="text-lg font-bold text-gray-900">{{ settings_obj.name }}</h3>
+                        <p class="text-xs text-gray-500">{{ settings_obj.slogan }}</p>
+                    </div>
+                </div>
+                <div class="text-xs text-gray-500 space-x-3 mt-2">
+                    {% if settings_obj.nit %}<span>NIT: {{ settings_obj.nit }}</span>{% endif %}
+                    {% if settings_obj.address %}<span>| {{ settings_obj.address }}</span>{% endif %}
+                    {% if settings_obj.phone %}<span>| Tel: {{ settings_obj.phone }}</span>{% endif %}
+                    {% if settings_obj.email %}<span>| {{ settings_obj.email }}</span>{% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="flex justify-end gap-3">
+            <a href="{% url 'dashboard' %}" class="btn-secondary">
+                <i class="fas fa-arrow-left mr-2"></i>Cancelar
+            </a>
+            <button type="submit" class="btn-primary">
+                <i class="fas fa-save mr-2"></i>Guardar Configuración
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}

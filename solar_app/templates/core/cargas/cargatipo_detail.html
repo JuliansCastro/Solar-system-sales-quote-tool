@@ -1,0 +1,82 @@
+{% extends 'base.html' %}
+{% block title %}{{ carga_tipo.nombre }} - SolarQuote{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto">
+    <div class="mb-6">
+        <a href="{% url 'cargatipo_list' %}" class="text-sm text-gray-500 hover:text-solar-600">
+            <i class="fas fa-arrow-left mr-1"></i> Volver al catálogo
+        </a>
+        <h1 class="text-2xl font-bold text-gray-900 mt-2">
+            <i class="fas fa-bolt text-solar-500 mr-2"></i>{{ carga_tipo.nombre }}
+        </h1>
+    </div>
+
+    <div class="card p-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+                <h3 class="text-sm font-medium text-gray-500 mb-1">Categoría</h3>
+                <p class="text-gray-900">{{ carga_tipo.get_categoria_display }}</p>
+            </div>
+            <div>
+                <h3 class="text-sm font-medium text-gray-500 mb-1">Potencia nominal</h3>
+                <p class="text-gray-900 font-semibold">{{ carga_tipo.potencia_nominal_w|floatformat:0 }} W</p>
+            </div>
+            <div>
+                <h3 class="text-sm font-medium text-gray-500 mb-1">Horas de uso por día</h3>
+                <p class="text-gray-900">{{ carga_tipo.horas_uso_dia|floatformat:1 }} h</p>
+            </div>
+            <div>
+                <h3 class="text-sm font-medium text-gray-500 mb-1">Factor de potencia</h3>
+                <p class="text-gray-900">{{ carga_tipo.factor_potencia|floatformat:2 }}</p>
+            </div>
+            <div>
+                <h3 class="text-sm font-medium text-gray-500 mb-1">Carga reactiva</h3>
+                <p class="text-gray-900">
+                    {% if carga_tipo.carga_reactiva %}
+                    <span class="text-orange-600"><i class="fas fa-check-circle mr-1"></i>Sí</span>
+                    {% else %}
+                    <span class="text-gray-400">No</span>
+                    {% endif %}
+                </p>
+            </div>
+            <div>
+                <h3 class="text-sm font-medium text-gray-500 mb-1">Factor de arranque</h3>
+                <p class="text-gray-900">{{ carga_tipo.factor_arranque|floatformat:1 }}x</p>
+            </div>
+            {% if carga_tipo.descripcion %}
+            <div class="md:col-span-2">
+                <h3 class="text-sm font-medium text-gray-500 mb-1">Descripción</h3>
+                <p class="text-gray-900">{{ carga_tipo.descripcion }}</p>
+            </div>
+            {% endif %}
+            <div>
+                <h3 class="text-sm font-medium text-gray-500 mb-1">Estado</h3>
+                <p>
+                    {% if carga_tipo.activo %}
+                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">Activo</span>
+                    {% else %}
+                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700">Inactivo</span>
+                    {% endif %}
+                </p>
+            </div>
+            <div>
+                <h3 class="text-sm font-medium text-gray-500 mb-1">Energía diaria estimada</h3>
+                <p class="text-solar-600 font-semibold">{{ carga_tipo.potencia_nominal_w|floatformat:0 }} W × {{ carga_tipo.horas_uso_dia|floatformat:1 }} h = 
+                    {% widthratio carga_tipo.potencia_nominal_w 1 carga_tipo.horas_uso_dia as energia %}
+                    {{ energia }} Wh/día
+                </p>
+            </div>
+        </div>
+
+        <div class="flex items-center justify-end gap-3 mt-6 pt-4 border-t border-gray-200">
+            <a href="{% url 'cargatipo_delete' carga_tipo.pk %}" class="btn-danger">
+                <i class="fas fa-trash mr-2"></i> Eliminar
+            </a>
+            <a href="{% url 'cargatipo_update' carga_tipo.pk %}" class="btn-primary">
+                <i class="fas fa-edit mr-2"></i> Editar
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,348 @@
+{% extends 'base.html' %}
+{% block title %}{% if form.instance.pk %}Editar{% else %}Nueva{% endif %} Cotización - SolarQuote{% endblock %}
+
+{% block content %}
+<div class="mb-6">
+    <a href="{% url 'cotizacion_list' %}" class="text-solar-600 hover:underline text-sm">
+        <i class="fas fa-arrow-left mr-1"></i> Volver a cotizaciones
+    </a>
+    <h1 class="text-2xl font-bold text-gray-900 mt-2">
+        {% if form.instance.pk %}Editar Cotización {{ form.instance.numero }}{% else %}Nueva Cotización{% endif %}
+    </h1>
+</div>
+
+<form method="post" id="cotizacionForm">
+    {% csrf_token %}
+
+    {# ── Errores generales del formulario ── #}
+    {% if form.errors %}
+    <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+        <h3 class="text-red-700 font-semibold text-sm mb-2"><i class="fas fa-exclamation-triangle mr-1"></i> Por favor corrige los siguientes errores:</h3>
+        <ul class="text-red-600 text-sm list-disc list-inside">
+            {% for field, errors in form.errors.items %}
+                {% for error in errors %}
+                    <li><strong>{{ field }}:</strong> {{ error }}</li>
+                {% endfor %}
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+    {% if items_formset.errors %}
+    <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+        <h3 class="text-red-700 font-semibold text-sm mb-2"><i class="fas fa-exclamation-triangle mr-1"></i> Errores en ítems:</h3>
+        <ul class="text-red-600 text-sm list-disc list-inside">
+            {% for form_errors in items_formset.errors %}
+                {% for field, errors in form_errors.items %}
+                    {% for error in errors %}
+                        <li><strong>{{ field }}:</strong> {{ error }}</li>
+                    {% endfor %}
+                {% endfor %}
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+
+    {# ── Datos generales ── #}
+    <div class="card p-6 mb-6">
+        <h2 class="text-lg font-semibold text-gray-800 mb-4">
+            <i class="fas fa-file-invoice mr-2 text-solar-500"></i> Datos Generales
+        </h2>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Proyecto *</label>
+                {{ form.proyecto }}
+                {% if form.proyecto.errors %}<p class="text-red-500 text-xs mt-1">{{ form.proyecto.errors.0 }}</p>{% endif %}
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Tipo de Cliente</label>
+                {{ form.tipo_cliente }}
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Estado</label>
+                {{ form.estado }}
+            </div>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Validez (días)</label>
+                {{ form.dias_validez }}
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Fecha de emisión</label>
+                {{ form.fecha_emision }}
+            </div>
+        </div>
+
+        {# ── Toggle total manual ── #}
+        <div class="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+            <div class="flex items-center gap-3">
+                {{ form.usar_total_manual }}
+                <label for="id_usar_total_manual" class="text-sm font-medium text-gray-700 cursor-pointer">
+                    Ingresar valor total del proyecto manualmente
+                </label>
+            </div>
+            <p class="text-xs text-gray-500 mt-1 ml-7">Activa esta opción si ya tienes el valor total y no necesitas desglosar ítems.</p>
+            <div id="totalManualContainer" class="mt-3 ml-7 {% if not form.usar_total_manual.value %}hidden{% endif %}">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Total del Proyecto (COP) *</label>
+                {{ form.total_manual }}
+            </div>
+        </div>
+    </div>
+
+    {# ── Ítems de la cotización ── #}
+    <div class="card p-6 mb-6" id="itemsSection">
+        <div class="flex items-center justify-between mb-4">
+            <h2 class="text-lg font-semibold text-gray-800">
+                <i class="fas fa-boxes mr-2 text-solar-500"></i> Ítems
+            </h2>
+            <button type="button" id="addItemBtn" class="btn-secondary text-xs">
+                <i class="fas fa-plus mr-1"></i> Agregar Ítem
+            </button>
+        </div>
+
+        {{ items_formset.management_form }}
+
+        <div class="overflow-x-auto">
+            <table class="min-w-full" id="itemsTable">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Equipo</th>
+                        <th class="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase w-24">Cant.</th>
+                        <th class="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase w-36">Precio Unit.</th>
+                        <th class="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase w-28">Desc. %</th>
+                        <th class="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase w-24">IVA</th>
+                        <th class="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase w-36">Subtotal</th>
+                        <th class="px-3 py-2 w-12"></th>
+                    </tr>
+                </thead>
+                <tbody id="itemsBody" class="divide-y divide-gray-100">
+                    {% for item_form in items_formset %}
+                    <tr class="item-row {% if item_form.DELETE.value %}hidden{% endif %}" data-index="{{ forloop.counter0 }}">
+                        <td class="px-3 py-2">
+                            {{ item_form.equipo }}
+                            {{ item_form.id }}
+                            <div class="hidden">{{ item_form.DELETE }}</div>
+                            {% if item_form.equipo.errors %}<p class="text-red-500 text-xs">{{ item_form.equipo.errors.0 }}</p>{% endif %}
+                        </td>
+                        <td class="px-3 py-2">{{ item_form.cantidad }}</td>
+                        <td class="px-3 py-2">{{ item_form.precio_unitario }}</td>
+                        <td class="px-3 py-2">{{ item_form.descuento_item }}</td>
+                        <td class="px-3 py-2 text-center">{{ item_form.aplica_iva }}</td>
+                        <td class="px-3 py-2 text-right font-medium row-subtotal">$0</td>
+                        <td class="px-3 py-2 text-center">
+                            <button type="button" class="remove-item text-red-400 hover:text-red-600" title="Eliminar">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% if items_formset.non_form_errors %}
+        <div class="text-red-500 text-sm mt-2">
+            {% for err in items_formset.non_form_errors %}{{ err }}{% endfor %}
+        </div>
+        {% endif %}
+    </div>
+
+    {# ── Costos adicionales & Totales ── #}
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6" id="costosYTotalesSection">
+        <div class="card p-6" id="costosSection">
+            <h2 class="text-lg font-semibold text-gray-800 mb-4">
+                <i class="fas fa-truck mr-2 text-solar-500"></i> Costos Adicionales
+            </h2>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Costo de Instalación</label>
+                    {{ form.costo_instalacion }}
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Costo de Transporte</label>
+                    {{ form.costo_transporte }}
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Descuento General (%)</label>
+                    {{ form.descuento_porcentaje }}
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">IVA (%)</label>
+                    {{ form.iva_porcentaje }}
+                </div>
+            </div>
+        </div>
+
+        <div class="card p-6 bg-gray-50">
+            <h2 class="text-lg font-semibold text-gray-800 mb-4">
+                <i class="fas fa-calculator mr-2 text-solar-500"></i> Resumen
+            </h2>
+            <div class="space-y-3 text-sm">
+                <div class="flex justify-between"><span class="text-gray-600">Subtotal equipos</span><span id="equiposSubtotal" class="font-medium">$0</span></div>
+                <div class="flex justify-between"><span class="text-gray-600">Instalación</span><span id="instalacionVal" class="font-medium">$0</span></div>
+                <div class="flex justify-between"><span class="text-gray-600">Transporte</span><span id="transporteVal" class="font-medium">$0</span></div>
+                <div class="flex justify-between"><span class="text-gray-600">Descuento</span><span id="descuentoVal" class="font-medium text-red-500">-$0</span></div>
+                <hr>
+                <div class="flex justify-between"><span class="text-gray-600">IVA (<span id="ivaPctLabel">19</span>%)</span><span id="ivaVal" class="font-medium">$0</span></div>
+                <div class="flex justify-between text-lg font-bold"><span>Total</span><span id="totalVal" class="text-solar-600">$0</span></div>
+            </div>
+        </div>
+    </div>
+
+    {# ── Condiciones ── #}
+    <div class="card p-6 mb-6">
+        <h2 class="text-lg font-semibold text-gray-800 mb-4">
+            <i class="fas fa-list-check mr-2 text-solar-500"></i> Condiciones Comerciales
+        </h2>
+        {{ form.condiciones }}
+    </div>
+
+    <div class="flex gap-3">
+        <button type="submit" class="btn-primary"><i class="fas fa-save mr-2"></i> Guardar Cotización</button>
+        <a href="{% url 'cotizacion_list' %}" class="btn-secondary">Cancelar</a>
+    </div>
+</form>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const totalFormsInput = document.getElementById('id_items-TOTAL_FORMS');
+    const tbody = document.getElementById('itemsBody');
+
+    // ── Manual total toggle ──
+    const usarTotalManual = document.getElementById('id_usar_total_manual');
+    const totalManualContainer = document.getElementById('totalManualContainer');
+    const totalManualInput = document.getElementById('id_total_manual');
+    const itemsSection = document.getElementById('itemsSection');
+    const costosSection = document.getElementById('costosSection');
+
+    function toggleManualMode() {
+        const manual = usarTotalManual.checked;
+        if (manual) {
+            totalManualContainer.classList.remove('hidden');
+            itemsSection.classList.add('opacity-50', 'pointer-events-none');
+            costosSection.classList.add('opacity-50', 'pointer-events-none');
+        } else {
+            totalManualContainer.classList.add('hidden');
+            itemsSection.classList.remove('opacity-50', 'pointer-events-none');
+            costosSection.classList.remove('opacity-50', 'pointer-events-none');
+        }
+        recalculate();
+    }
+
+    usarTotalManual.addEventListener('change', toggleManualMode);
+    totalManualInput?.addEventListener('input', recalculate);
+    toggleManualMode();
+
+    // ── Add new item row ──
+    document.getElementById('addItemBtn').addEventListener('click', function () {
+        const idx = parseInt(totalFormsInput.value);
+        const emptyRow = tbody.querySelector('.item-row');
+        if (!emptyRow) return;
+        const newRow = emptyRow.cloneNode(true);
+        newRow.classList.remove('hidden');
+        newRow.setAttribute('data-index', idx);
+        newRow.innerHTML = newRow.innerHTML.replace(/-\d+-/g, `-${idx}-`).replace(/-\d+-/g, `-${idx}-`);
+        // clear values
+        newRow.querySelectorAll('input, select').forEach(el => {
+            if (el.type === 'checkbox') {
+                // New items: IVA checked by default, DELETE always unchecked
+                el.checked = el.name.endsWith('-aplica_iva');
+            } else if (el.tagName === 'SELECT') el.selectedIndex = 0;
+            else if (el.name && !el.name.includes('TOTAL_FORMS') && !el.name.includes('INITIAL_FORMS')) el.value = '';
+        });
+        tbody.appendChild(newRow);
+        totalFormsInput.value = idx + 1;
+        bindRowEvents(newRow);
+        recalculate();
+    });
+
+    // ── Remove item row ──
+    function bindRowEvents(row) {
+        row.querySelector('.remove-item')?.addEventListener('click', function () {
+            const delCheckbox = row.querySelector('input[name$="-DELETE"]');
+            if (delCheckbox) {
+                delCheckbox.checked = true;
+                row.classList.add('hidden');
+            } else {
+                row.remove();
+            }
+            recalculate();
+        });
+    }
+
+    document.querySelectorAll('.item-row').forEach(bindRowEvents);
+
+    // ── Event delegation on items tbody (robust: captures all input/checkbox changes) ──
+    tbody.addEventListener('change', recalculate);
+    tbody.addEventListener('input', recalculate);
+
+    // ── Recalculate totals ──
+    function recalculate() {
+        // Manual total mode
+        if (usarTotalManual.checked) {
+            const manualTotal = parseFloat(totalManualInput?.value) || 0;
+            const ivaPct = parseFloat(document.querySelector('[name="iva_porcentaje"]')?.value) || 19;
+            const subtotalNeto = manualTotal / (1 + ivaPct / 100);
+            const iva = manualTotal - subtotalNeto;
+
+            document.getElementById('equiposSubtotal').textContent = '-';
+            document.getElementById('instalacionVal').textContent = '-';
+            document.getElementById('transporteVal').textContent = '-';
+            document.getElementById('descuentoVal').textContent = '-';
+            document.getElementById('ivaPctLabel').textContent = ivaPct;
+            document.getElementById('ivaVal').textContent = '$' + Math.round(iva).toLocaleString('es-CO');
+            document.getElementById('totalVal').textContent = '$' + Math.round(manualTotal).toLocaleString('es-CO');
+            return;
+        }
+
+        let equiposGravado = 0;
+        let equiposExento = 0;
+        document.querySelectorAll('.item-row:not(.hidden)').forEach(row => {
+            const cant = parseFloat(row.querySelector('[name$="-cantidad"]')?.value) || 0;
+            const precio = parseFloat(row.querySelector('[name$="-precio_unitario"]')?.value) || 0;
+            const desc = parseFloat(row.querySelector('[name$="-descuento_item"]')?.value) || 0;
+            const aplicaIva = row.querySelector('[name$="-aplica_iva"]')?.checked || false;
+            const sub = cant * precio * (1 - desc / 100);
+            row.querySelector('.row-subtotal').textContent = '$' + Math.round(sub).toLocaleString('es-CO');
+            if (aplicaIva) {
+                equiposGravado += sub;
+            } else {
+                equiposExento += sub;
+            }
+        });
+
+        const equiposSub = equiposGravado + equiposExento;
+        const instalacion = parseFloat(document.querySelector('[name="costo_instalacion"]')?.value) || 0;
+        const transporte = parseFloat(document.querySelector('[name="costo_transporte"]')?.value) || 0;
+        const descPct = parseFloat(document.querySelector('[name="descuento_porcentaje"]')?.value) || 0;
+
+        const ivaPct = parseFloat(document.querySelector('[name="iva_porcentaje"]')?.value) || 19;
+
+        const baseTotal = equiposSub + instalacion + transporte;
+        const descuento = baseTotal * descPct / 100;
+        const subtotalNeto = baseTotal - descuento;
+        // IVA solo sobre la porción gravada (equipos gravados + instalación + transporte)
+        const baseGravada = equiposGravado + instalacion + transporte;
+        const gravadoConDescuento = baseGravada * (1 - descPct / 100);
+        const iva = gravadoConDescuento * ivaPct / 100;
+        const total = subtotalNeto + iva;
+
+        document.getElementById('equiposSubtotal').textContent = '$' + Math.round(equiposSub).toLocaleString('es-CO');
+        document.getElementById('instalacionVal').textContent = '$' + Math.round(instalacion).toLocaleString('es-CO');
+        document.getElementById('transporteVal').textContent = '$' + Math.round(transporte).toLocaleString('es-CO');
+        document.getElementById('descuentoVal').textContent = '-$' + Math.round(descuento).toLocaleString('es-CO');
+        document.getElementById('ivaPctLabel').textContent = ivaPct;
+        document.getElementById('ivaVal').textContent = '$' + Math.round(iva).toLocaleString('es-CO');
+        document.getElementById('totalVal').textContent = '$' + Math.round(total).toLocaleString('es-CO');
+    }
+
+    // cost fields
+    document.querySelectorAll('[name="costo_instalacion"],[name="costo_transporte"],[name="descuento_porcentaje"],[name="iva_porcentaje"]').forEach(el => {
+        el.addEventListener('input', recalculate);
+    });
+
+    recalculate();
+});
+</script>
+{% endblock %}

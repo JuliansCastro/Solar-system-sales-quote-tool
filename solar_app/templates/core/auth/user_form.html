@@ -1,0 +1,82 @@
+{% extends 'base.html' %}
+{% block title %}Nuevo Usuario - SolarQuote{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto">
+    <a href="{% url 'user_list' %}" class="text-solar-600 hover:underline text-sm">
+        <i class="fas fa-arrow-left mr-1"></i> Volver a usuarios
+    </a>
+    <h1 class="text-2xl font-bold text-gray-900 mt-2 mb-6">Registrar Nuevo Usuario</h1>
+
+    <form method="post" class="space-y-6">
+        {% csrf_token %}
+
+        <div class="card p-6">
+            <h2 class="text-lg font-semibold text-gray-800 mb-4">
+                <i class="fas fa-user mr-2 text-solar-500"></i> Información de Cuenta
+            </h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Nombre de usuario *</label>
+                    {{ form.username }}
+                    {% if form.username.errors %}<p class="text-red-500 text-xs mt-1">{{ form.username.errors.0 }}</p>{% endif %}
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Email *</label>
+                    {{ form.email }}
+                    {% if form.email.errors %}<p class="text-red-500 text-xs mt-1">{{ form.email.errors.0 }}</p>{% endif %}
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Nombre</label>
+                    {{ form.first_name }}
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Apellido</label>
+                    {{ form.last_name }}
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Contraseña *</label>
+                    {{ form.password1 }}
+                    {% if form.password1.errors %}<p class="text-red-500 text-xs mt-1">{{ form.password1.errors.0 }}</p>{% endif %}
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Confirmar Contraseña *</label>
+                    {{ form.password2 }}
+                    {% if form.password2.errors %}<p class="text-red-500 text-xs mt-1">{{ form.password2.errors.0 }}</p>{% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="card p-6">
+            <h2 class="text-lg font-semibold text-gray-800 mb-4">
+                <i class="fas fa-id-badge mr-2 text-solar-500"></i> Perfil
+            </h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Rol *</label>
+                    {{ form.role }}
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Teléfono</label>
+                    {{ form.phone }}
+                </div>
+                <div class="md:col-span-2">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Empresa</label>
+                    {{ form.company }}
+                </div>
+            </div>
+        </div>
+
+        {% if form.non_field_errors %}
+        <div class="bg-red-50 border border-red-200 text-red-700 p-4 rounded-lg text-sm">
+            {% for error in form.non_field_errors %}{{ error }}{% endfor %}
+        </div>
+        {% endif %}
+
+        <div class="flex gap-3">
+            <button type="submit" class="btn-primary"><i class="fas fa-save mr-2"></i> Crear Usuario</button>
+            <a href="{% url 'user_list' %}" class="btn-secondary">Cancelar</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

@@ -1,0 +1,401 @@
+{% extends 'base.html' %}
+{% block title %}{% if form.instance.pk %}Editar{% else %}Nuevo{% endif %} Proyecto - SolarQuote{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto">
+    <div class="mb-6">
+        <a href="{% url 'proyecto_list' %}" class="text-sm text-gray-500 hover:text-solar-600">
+            <i class="fas fa-arrow-left mr-1"></i> Volver a proyectos
+        </a>
+        <h1 class="text-2xl font-bold text-gray-900 mt-2">
+            {% if form.instance.pk %}Editar proyecto{% else %}Nuevo proyecto solar{% endif %}
+        </h1>
+    </div>
+
+    <div class="card p-6">
+        <form method="post" class="space-y-6">
+            {% csrf_token %}
+
+            {% if form.errors %}
+            <div class="p-4 bg-red-50 border border-red-200 rounded-lg">
+                <p class="text-sm font-medium text-red-800 mb-2">Corrige los siguientes errores:</p>
+                {% for field, errors in form.errors.items %}
+                    {% for error in errors %}
+                    <p class="text-sm text-red-600">• {{ error }}</p>
+                    {% endfor %}
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <!-- Step 1: Basic Info -->
+            <div>
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">
+                    <span class="inline-flex items-center justify-center w-7 h-7 bg-solar-500 text-white rounded-full text-sm mr-2">1</span>
+                    Información básica
+                </h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="md:col-span-2">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Nombre del proyecto *</label>
+                        {{ form.nombre }}
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Cliente *</label>
+                        {{ form.cliente }}
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Tipo de sistema *</label>
+                        {{ form.tipo_sistema }}
+                    </div>
+                </div>
+            </div>
+
+            <hr class="border-gray-200">
+
+            <!-- Step 2.5: Energy Consumption from Bill -->
+            <div>
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">
+                    <span class="inline-flex items-center justify-center w-7 h-7 bg-solar-500 text-white rounded-full text-sm mr-2">2</span>
+                    Consumo de energía (Factura)
+                </h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Consumo mensual de la factura (kWh)</label>
+                        {{ form.consumo_mensual_factura_kwh }}
+                        <p class="text-xs text-gray-400 mt-1">Opcional. Si se indica, se usará este valor para dimensionar en lugar del consumo registrado en el cliente.</p>
+                    </div>
+                    <div class="flex items-end">
+                        <div id="consumo-info" class="p-3 bg-blue-50 rounded-lg border border-blue-200 w-full">
+                            <p class="text-xs text-blue-700 mb-1"><i class="fas fa-info-circle mr-1"></i> Consumo diario estimado:</p>
+                            <p class="text-lg font-bold text-blue-800" id="consumo-diario-display">-- kWh/día</p>
+                            <p class="text-xs text-gray-500 mt-1" id="consumo-source">Se calculará automáticamente</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <hr class="border-gray-200">
+
+            <!-- Step 3: Location -->
+            <div>
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">
+                    <span class="inline-flex items-center justify-center w-7 h-7 bg-solar-500 text-white rounded-full text-sm mr-2">3</span>
+                    Ubicación
+                </h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Latitud *</label>
+                        {{ form.latitud }}
+                        <p class="text-xs text-gray-400 mt-1">Ej: 4.7110 (Bogotá)</p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Longitud *</label>
+                        {{ form.longitud }}
+                        <p class="text-xs text-gray-400 mt-1">Ej: -74.0721 (Bogotá)</p>
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Dirección de instalación</label>
+                        <div class="flex gap-2">
+                            <div class="flex-1">{{ form.direccion_instalacion }}</div>
+                            <button type="button" id="btn-open-map" class="inline-flex items-center justify-center w-10 h-10 bg-solar-500 text-white rounded-lg hover:bg-solar-600 focus:outline-none focus:ring-2 focus:ring-solar-400 transition-colors flex-shrink-0" title="Seleccionar ubicación en mapa">
+                                <i class="fas fa-map-marker-alt text-lg"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <button type="button" id="btn-pvgis" class="mt-3 btn-secondary text-sm">
+                    <i class="fas fa-satellite mr-1"></i> Consultar radiación solar (PVGIS)
+                </button>
+                <div id="pvgis-result" class="hidden mt-3 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                    <p class="text-sm text-blue-800" id="pvgis-text"></p>
+                </div>
+            </div>
+
+            <hr class="border-gray-200">
+
+            <!-- Step 4: Solar Parameters -->
+            <div>
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">
+                    <span class="inline-flex items-center justify-center w-7 h-7 bg-solar-500 text-white rounded-full text-sm mr-2">4</span>
+                    Parámetros solares
+                </h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">HSP promedio (horas)</label>
+                        {{ form.hsp_promedio }}
+                        <p class="text-xs text-gray-400 mt-1">Se puede obtener automáticamente con PVGIS</p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Autonomía (días) - Off-Grid</label>
+                        {{ form.autonomia_dias }}
+                        <p class="text-xs text-gray-400 mt-1">Solo para sistemas off-grid / híbrido</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex items-center justify-end gap-3 pt-4 border-t border-gray-200">
+                <a href="{% url 'proyecto_list' %}" class="btn-secondary">Cancelar</a>
+                <button type="submit" class="btn-primary">
+                    <i class="fas fa-save mr-2"></i>
+                    {% if form.instance.pk %}Guardar cambios{% else %}Crear proyecto{% endif %}
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<!-- Leaflet CSS -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+<style>
+    #map-modal {
+        z-index: 9999;
+    }
+    #location-map {
+        height: 450px;
+        width: 100%;
+        border-radius: 0.5rem;
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+<!-- Map Modal -->
+<div id="map-modal" class="fixed inset-0 hidden items-center justify-center bg-black bg-opacity-50">
+    <div class="bg-white rounded-xl shadow-2xl w-full max-w-3xl mx-4 overflow-hidden">
+        <div class="flex items-center justify-between px-5 py-3 border-b border-gray-200">
+            <h3 class="text-lg font-semibold text-gray-800">
+                <i class="fas fa-map-marker-alt text-solar-500 mr-2"></i>Seleccionar ubicación
+            </h3>
+            <button type="button" id="btn-close-map" class="text-gray-400 hover:text-gray-600 transition-colors">
+                <i class="fas fa-times text-xl"></i>
+            </button>
+        </div>
+        <div class="p-4">
+            <!-- Search bar inside modal -->
+            <div class="flex gap-2 mb-3">
+                <input type="text" id="map-search-input" class="form-input flex-1" placeholder="Buscar dirección…">
+                <button type="button" id="btn-map-search" class="btn-primary text-sm">
+                    <i class="fas fa-search mr-1"></i> Buscar
+                </button>
+            </div>
+            <div id="location-map"></div>
+            <p class="text-xs text-gray-500 mt-2"><i class="fas fa-info-circle mr-1"></i>Haz clic en el mapa para ajustar la ubicación. Arrastra el marcador para moverlo.</p>
+            <div id="map-coords" class="mt-2 text-sm text-gray-600 font-mono"></div>
+        </div>
+        <div class="flex items-center justify-end gap-3 px-5 py-3 border-t border-gray-200">
+            <button type="button" id="btn-cancel-map" class="btn-secondary text-sm">Cancelar</button>
+            <button type="button" id="btn-confirm-map" class="btn-primary text-sm">
+                <i class="fas fa-check mr-1"></i> Confirmar ubicación
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+// ── PVGIS button (existing) ──────────────────────────
+document.getElementById('btn-pvgis').addEventListener('click', function() {
+    const lat = document.querySelector('[name="latitud"]').value;
+    const lon = document.querySelector('[name="longitud"]').value;
+    const resultDiv = document.getElementById('pvgis-result');
+    const textEl = document.getElementById('pvgis-text');
+
+    this.disabled = true;
+    this.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Consultando PVGIS...';
+
+    fetch(`/api/pvgis/?lat=${lat}&lon=${lon}`)
+        .then(r => r.json())
+        .then(data => {
+            if (data.error) {
+                textEl.textContent = 'Error: ' + data.error;
+                resultDiv.classList.remove('hidden');
+            } else {
+                document.querySelector('[name="hsp_promedio"]').value = data.hsp_promedio.toFixed(2);
+                textEl.innerHTML = `
+                    <strong>✅ Datos obtenidos de PVGIS</strong><br>
+                    HSP promedio: ${data.hsp_promedio.toFixed(2)} h/día<br>
+                    HSP mínimo (mes ${data.mes_minimo}): ${data.hsp_minimo.toFixed(2)} h/día<br>
+                    Radiación anual: ${data.radiacion_anual.toFixed(0)} kWh/m²
+                `;
+                resultDiv.classList.remove('hidden');
+            }
+        })
+        .catch(err => {
+            textEl.textContent = 'Error de conexión: ' + err.message;
+            resultDiv.classList.remove('hidden');
+        })
+        .finally(() => {
+            this.disabled = false;
+            this.innerHTML = '<i class="fas fa-satellite mr-1"></i> Consultar radiación solar (PVGIS)';
+        });
+});
+
+// ── Map picker ───────────────────────────────────────
+(function() {
+    const modal      = document.getElementById('map-modal');
+    const btnOpen    = document.getElementById('btn-open-map');
+    const btnClose   = document.getElementById('btn-close-map');
+    const btnCancel  = document.getElementById('btn-cancel-map');
+    const btnConfirm = document.getElementById('btn-confirm-map');
+    const btnSearch  = document.getElementById('btn-map-search');
+    const searchInput = document.getElementById('map-search-input');
+    const coordsEl   = document.getElementById('map-coords');
+
+    let map, marker, selectedLat, selectedLng;
+
+    function updateCoordsDisplay(lat, lng) {
+        coordsEl.textContent = `Lat: ${lat.toFixed(4)}, Lng: ${lng.toFixed(4)}`;
+    }
+
+    function closeModal() {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    }
+
+    function openModal() {
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+
+        // Read current lat/lng from form (or defaults)
+        const formLat = parseFloat(document.querySelector('[name="latitud"]').value) || 4.7110;
+        const formLng = parseFloat(document.querySelector('[name="longitud"]').value) || -74.0721;
+        selectedLat = formLat;
+        selectedLng = formLng;
+
+        // Pre-fill search input with address text
+        const addr = document.querySelector('[name="direccion_instalacion"]').value;
+        searchInput.value = addr || '';
+
+        // Initialize or re-center map
+        if (!map) {
+            map = L.map('location-map').setView([formLat, formLng], 14);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+            }).addTo(map);
+
+            marker = L.marker([formLat, formLng], { draggable: true }).addTo(map);
+
+            // Click on map → move marker
+            map.on('click', function(e) {
+                selectedLat = e.latlng.lat;
+                selectedLng = e.latlng.lng;
+                marker.setLatLng(e.latlng);
+                updateCoordsDisplay(selectedLat, selectedLng);
+            });
+
+            // Drag marker
+            marker.on('dragend', function() {
+                const pos = marker.getLatLng();
+                selectedLat = pos.lat;
+                selectedLng = pos.lng;
+                updateCoordsDisplay(selectedLat, selectedLng);
+            });
+        } else {
+            map.setView([formLat, formLng], 14);
+            marker.setLatLng([formLat, formLng]);
+        }
+
+        updateCoordsDisplay(selectedLat, selectedLng);
+
+        // Fix Leaflet tile rendering inside modal
+        setTimeout(() => map.invalidateSize(), 200);
+
+        // If there's an address, geocode it automatically
+        if (addr && addr.trim().length > 3) {
+            geocodeAddress(addr);
+        }
+    }
+
+    function geocodeAddress(query) {
+        btnSearch.disabled = true;
+        btnSearch.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> …';
+        fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`, {
+            headers: { 'Accept-Language': 'es' }
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.length > 0) {
+                const lat = parseFloat(data[0].lat);
+                const lng = parseFloat(data[0].lon);
+                selectedLat = lat;
+                selectedLng = lng;
+                map.setView([lat, lng], 16);
+                marker.setLatLng([lat, lng]);
+                updateCoordsDisplay(lat, lng);
+            } else {
+                coordsEl.textContent = '⚠ No se encontró la dirección. Haz clic en el mapa para ubicar manualmente.';
+            }
+        })
+        .catch(() => {
+            coordsEl.textContent = '⚠ Error al buscar dirección.';
+        })
+        .finally(() => {
+            btnSearch.disabled = false;
+            btnSearch.innerHTML = '<i class="fas fa-search mr-1"></i> Buscar';
+        });
+    }
+
+    // Events
+    btnOpen.addEventListener('click', openModal);
+    btnClose.addEventListener('click', closeModal);
+    btnCancel.addEventListener('click', closeModal);
+
+    // Close on backdrop click
+    modal.addEventListener('click', function(e) {
+        if (e.target === modal) closeModal();
+    });
+
+    // Close on Escape
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && !modal.classList.contains('hidden')) closeModal();
+    });
+
+    btnSearch.addEventListener('click', function() {
+        const q = searchInput.value.trim();
+        if (q) geocodeAddress(q);
+    });
+
+    searchInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            const q = searchInput.value.trim();
+            if (q) geocodeAddress(q);
+        }
+    });
+
+    btnConfirm.addEventListener('click', function() {
+        document.querySelector('[name="latitud"]').value = selectedLat.toFixed(4);
+        document.querySelector('[name="longitud"]').value = selectedLng.toFixed(4);
+        closeModal();
+    });
+})();
+</script>
+
+<!-- Consumo diario calculator -->
+<script>
+(function() {
+    const consumoInput = document.querySelector('[name="consumo_mensual_factura_kwh"]');
+    const displayEl = document.getElementById('consumo-diario-display');
+    const sourceEl = document.getElementById('consumo-source');
+
+    function updateConsumoDiario() {
+        const val = parseFloat(consumoInput.value);
+        if (val > 0) {
+            const diario = (val / 30).toFixed(2);
+            displayEl.textContent = diario + ' kWh/día';
+            sourceEl.textContent = 'Basado en el consumo de la factura (' + val + ' kWh/mes)';
+        } else {
+            displayEl.textContent = '-- kWh/día';
+            sourceEl.textContent = 'Ingresa el consumo mensual de la factura para calcular';
+        }
+    }
+
+    consumoInput.addEventListener('input', updateConsumoDiario);
+    updateConsumoDiario();  // Run on page load
+})();
+</script>
+{% endblock %}
