@@ -4,10 +4,10 @@
 {% block content %}
 <div class="max-w-3xl mx-auto">
     <div class="mb-6">
-        <a href="{% url 'cliente_list' %}" class="text-sm text-gray-500 hover:text-solar-600">
+        <a href="{% url 'cliente_list' %}" class="text-sm text-ink-400 hover:text-solar-600 transition-base">
             <i class="fas fa-arrow-left mr-1"></i> Volver a clientes
         </a>
-        <h1 class="text-2xl font-bold text-gray-900 mt-2">
+        <h1 class="text-2xl font-extrabold text-ink-950 tracking-tight mt-2">
             {% if form.instance.pk %}Editar cliente{% else %}Nuevo cliente{% endif %}
         </h1>
     </div>
@@ -17,8 +17,8 @@
             {% csrf_token %}
 
             {% if form.errors %}
-            <div class="p-4 bg-red-50 border border-red-200 rounded-lg">
-                <p class="text-sm font-medium text-red-800 mb-2">Corrige los siguientes errores:</p>
+            <div class="p-4 bg-red-50 border border-red-200 rounded-soft">
+                <p class="text-sm font-semibold text-red-800 mb-2">Corrige los siguientes errores:</p>
                 {% for field, errors in form.errors.items %}
                     {% for error in errors %}
                     <p class="text-sm text-red-600">• {{ field }}: {{ error }}</p>
@@ -29,66 +29,123 @@
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div class="md:col-span-2">
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Nombre completo *</label>
+                    <label class="form-label">Nombre completo *</label>
                     {{ form.nombre }}
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Correo electrónico *</label>
+                    <label class="form-label">Correo electrónico *</label>
                     {{ form.email }}
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Teléfono *</label>
+                    <label class="form-label">Teléfono *</label>
                     {{ form.telefono }}
                 </div>
                 <div class="md:col-span-2">
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Dirección *</label>
+                    <label class="form-label">Dirección *</label>
                     {{ form.direccion }}
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Ciudad *</label>
-                    {{ form.ciudad }}
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Departamento *</label>
+                    <label class="form-label">Departamento *</label>
                     {{ form.departamento }}
                 </div>
+                <div>
+                    <label class="form-label">Municipio *</label>
+                    {{ form.municipio }}
+                </div>
+                
             </div>
 
-            <hr class="border-gray-200">
-            <h3 class="text-lg font-semibold text-gray-800">
-                <i class="fas fa-bolt text-solar-500 mr-2"></i>Datos energéticos
+            <hr class="border-canvas-200">
+            <h3 class="text-lg font-semibold text-ink-800">
+                <i class="fas fa-bolt text-solar-500 mr-1"></i>Datos energéticos
             </h3>
 
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Consumo mensual (kWh) *</label>
+                    <label class="form-label">Consumo mensual (kWh) *</label>
                     {{ form.consumo_mensual_kwh }}
-                    <p class="text-xs text-gray-400 mt-1">Revisar en la factura de energía</p>
+                    <p class="text-xs text-ink-400 mt-1">Revisar en la factura de energía</p>
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Tarifa eléctrica (COP/kWh) *</label>
+                    <label class="form-label">Tarifa eléctrica (COP/kWh) *</label>
                     {{ form.tarifa_electrica }}
-                    <p class="text-xs text-gray-400 mt-1">Costo por kWh en la factura</p>
+                    <p class="text-xs text-ink-400 mt-1">Costo por kWh en la factura</p>
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Estrato *</label>
+                    <label class="form-label">Estrato *</label>
                     {{ form.estrato }}
                 </div>
             </div>
 
             <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Notas</label>
+                <label class="form-label">Notas</label>
                 {{ form.notas }}
             </div>
 
-            <div class="flex items-center justify-end gap-3 pt-4 border-t border-gray-200">
+            <div class="flex items-center justify-end gap-3 pt-4 border-t border-canvas-200">
                 <a href="{% url 'cliente_list' %}" class="btn-secondary">Cancelar</a>
                 <button type="submit" class="btn-primary">
-                    <i class="fas fa-save mr-2"></i>
+                    <i class="fas fa-save text-xs"></i>
                     {% if form.instance.pk %}Guardar cambios{% else %}Crear cliente{% endif %}
                 </button>
             </div>
         </form>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const departamentoSelect = document.getElementById('id_departamento');
+    const municipioSelect = document.getElementById('id_municipio');
+    
+    if (!departamentoSelect || !municipioSelect) return;
+    
+    // Function to load municipalities when department changes
+    function loadMunicipios() {
+        const departamentoId = departamentoSelect.value;
+        
+        if (!departamentoId) {
+            // Clear municipios if no department selected
+            municipioSelect.innerHTML = '<option value="">---------</option>';
+            return;
+        }
+        
+        // Save current selection if any
+        const currentSelection = municipioSelect.value;
+        
+        // Fetch municipios for selected department
+        fetch(`/api/municipios/${departamentoId}/`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.municipios) {
+                    // Rebuild municipio options
+                    municipioSelect.innerHTML = '<option value="">---------</option>';
+                    data.municipios.forEach(mun => {
+                        const option = document.createElement('option');
+                        option.value = mun.id_municipio;
+                        option.textContent = mun.nombre;
+                        municipioSelect.appendChild(option);
+                    });
+                    
+                    // Restore selection if it exists in new list
+                    if (currentSelection) {
+                        municipioSelect.value = currentSelection;
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error loading municipios:', error);
+                municipioSelect.innerHTML = '<option value="">Error cargando municipios</option>';
+            });
+    }
+    
+    // Load municipios on department change
+    departamentoSelect.addEventListener('change', loadMunicipios);
+    
+    // Load municipios on page load if department is already selected
+    if (departamentoSelect.value) {
+        loadMunicipios();
+    }
+});
+</script>
 {% endblock %}

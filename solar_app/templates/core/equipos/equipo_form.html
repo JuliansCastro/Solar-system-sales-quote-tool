@@ -4,10 +4,10 @@
 {% block content %}
 <div class="max-w-4xl mx-auto">
     <div class="mb-6">
-        <a href="{% url 'equipo_list' %}" class="text-sm text-gray-500 hover:text-solar-600">
+        <a href="{% url 'equipo_list' %}" class="text-sm text-ink-400 hover:text-solar-600 transition-base">
             <i class="fas fa-arrow-left mr-1"></i> Volver a inventario
         </a>
-        <h1 class="text-2xl font-bold text-gray-900 mt-2">
+        <h1 class="text-2xl font-extrabold text-ink-950 tracking-tight mt-2">
             {% if form.instance.pk %}Editar equipo{% else %}Nuevo equipo{% endif %}
         </h1>
     </div>
@@ -17,8 +17,8 @@
             {% csrf_token %}
 
             {% if form.errors %}
-            <div class="p-4 bg-red-50 border border-red-200 rounded-lg">
-                <p class="text-sm font-medium text-red-800 mb-2">Corrige los siguientes errores:</p>
+            <div class="p-4 bg-red-50 border border-red-200 rounded-soft">
+                <p class="text-sm font-semibold text-red-800 mb-2">Corrige los siguientes errores:</p>
                 {% for field, errors in form.errors.items %}
                     {% for error in errors %}
                     <p class="text-sm text-red-600">• {{ field }}: {{ error }}</p>
@@ -28,132 +28,132 @@
             {% endif %}
 
             <!-- Basic info -->
-            <h3 class="text-lg font-semibold text-gray-800">Información básica</h3>
+            <h3 class="text-lg font-semibold text-ink-800">Información básica</h3>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Nombre *</label>
+                    <label class="form-label">Nombre *</label>
                     {{ form.nombre }}
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Modelo *</label>
+                    <label class="form-label">Modelo *</label>
                     {{ form.modelo }}
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Fabricante *</label>
+                    <label class="form-label">Fabricante *</label>
                     {{ form.fabricante }}
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Categoría *</label>
+                    <label class="form-label">Categoría *</label>
                     {{ form.categoria }}
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">SKU *</label>
+                    <label class="form-label">SKU *</label>
                     {{ form.sku }}
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Sistema compatible</label>
+                    <label class="form-label">Sistema compatible</label>
                     {{ form.sistema_compatible }}
                 </div>
             </div>
             <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Descripción técnica</label>
+                <label class="form-label">Descripción técnica</label>
                 {{ form.descripcion }}
             </div>
 
-            <hr class="border-gray-200">
+            <hr class="border-canvas-200">
 
             <!-- Technical specs -->
-            <h3 class="text-lg font-semibold text-gray-800">Especificaciones técnicas</h3>
+            <h3 class="text-lg font-semibold text-ink-800">Especificaciones técnicas</h3>
             <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Potencia nominal (W) *</label>
+                    <label class="form-label">Potencia nominal (W) *</label>
                     {{ form.potencia_nominal_w }}
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Voltaje nominal (V)</label>
+                    <label class="form-label">Voltaje nominal (V)</label>
                     {{ form.voltaje_nominal }}
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Corriente nominal (A)</label>
+                    <label class="form-label">Corriente nominal (A)</label>
                     {{ form.corriente_nominal }}
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Eficiencia (%)</label>
+                    <label class="form-label">Eficiencia (%)</label>
                     {{ form.eficiencia }}
                 </div>
             </div>
 
             <!-- Physical specs -->
-            <h3 class="text-lg font-semibold text-gray-800">Dimensiones y peso</h3>
+            <h3 class="text-lg font-semibold text-ink-800">Dimensiones y peso</h3>
             <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Largo (mm)</label>
+                    <label class="form-label">Largo (mm)</label>
                     {{ form.largo_mm }}
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Ancho (mm)</label>
+                    <label class="form-label">Ancho (mm)</label>
                     {{ form.ancho_mm }}
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Alto (mm)</label>
+                    <label class="form-label">Alto (mm)</label>
                     {{ form.alto_mm }}
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Peso (kg)</label>
+                    <label class="form-label">Peso (kg)</label>
                     {{ form.peso_kg }}
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Garantía (años)</label>
+                    <label class="form-label">Garantía (años)</label>
                     {{ form.garantia_anos }}
                 </div>
             </div>
 
-            <hr class="border-gray-200">
+            <hr class="border-canvas-200">
 
             <!-- Pricing -->
-            <h3 class="text-lg font-semibold text-gray-800">Precios y stock</h3>
+            <h3 class="text-lg font-semibold text-ink-800">Precios y stock</h3>
             <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Precio proveedor (COP) *</label>
+                    <label class="form-label">Precio proveedor (COP) *</label>
                     {{ form.precio_proveedor }}
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Precio venta (COP) *</label>
+                    <label class="form-label">Precio venta (COP) *</label>
                     {{ form.precio_venta }}
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Margen (%)</label>
+                    <label class="form-label">Margen (%)</label>
                     {{ form.margen_porcentaje }}
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Stock disponible *</label>
+                    <label class="form-label">Stock disponible *</label>
                     {{ form.stock }}
                 </div>
             </div>
 
             <!-- Files -->
-            <h3 class="text-lg font-semibold text-gray-800">Archivos</h3>
+            <h3 class="text-lg font-semibold text-ink-800">Archivos</h3>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Imagen del equipo</label>
+                    <label class="form-label">Imagen del equipo</label>
                     {{ form.imagen }}
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Ficha técnica (PDF)</label>
+                    <label class="form-label">Ficha técnica (PDF)</label>
                     {{ form.ficha_tecnica }}
                 </div>
             </div>
 
             <div>
-                <label class="flex items-center gap-2 text-sm text-gray-700">
+                <label class="flex items-center gap-2 text-sm text-ink-700 cursor-pointer">
                     {{ form.activo }} Equipo activo (visible en el catálogo)
                 </label>
             </div>
 
-            <div class="flex items-center justify-end gap-3 pt-4 border-t border-gray-200">
+            <div class="flex items-center justify-end gap-3 pt-4 border-t border-canvas-200">
                 <a href="{% url 'equipo_list' %}" class="btn-secondary">Cancelar</a>
                 <button type="submit" class="btn-primary">
-                    <i class="fas fa-save mr-2"></i>
+                    <i class="fas fa-save text-xs"></i>
                     {% if form.instance.pk %}Guardar cambios{% else %}Agregar equipo{% endif %}
                 </button>
             </div>

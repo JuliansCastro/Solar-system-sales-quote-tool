@@ -164,7 +164,7 @@ def dimensionar_on_grid(
     consumo_mensual_kwh: float,
     tarifa_cop_kwh: float,
     hsp: float = 4.5,
-    potencia_panel_w: float = 550,
+    potencia_panel_w: float = 630,
     eficiencia_sistema: float = 0.80,
     porcentaje_cobertura_deseado: float = 100,
     costo_watt_instalado: float = 3500,

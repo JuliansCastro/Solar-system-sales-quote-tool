@@ -1,24 +1,27 @@
 {% extends 'base.html' %}
+{% load humanize %}
 {% block title %}Cotizaciones - SolarQuote{% endblock %}
 
 {% block content %}
-<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
+<div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-6">
     <div>
-        <h1 class="text-2xl font-bold text-gray-900">Cotizaciones</h1>
-        <p class="text-sm text-gray-500 mt-1">Historial de cotizaciones generadas</p>
+        <h1 class="text-2xl font-extrabold text-ink-950 tracking-tight">Cotizaciones</h1>
+        <p class="text-sm text-ink-500 mt-1">Historial de cotizaciones generadas</p>
     </div>
-    <a href="{% url 'cotizacion_create' %}" class="mt-4 sm:mt-0 btn-primary">
-        <i class="fas fa-plus mr-2"></i> Nueva Cotización
+    <a href="{% url 'cotizacion_create' %}" class="btn-primary">
+        <i class="fas fa-plus text-xs"></i> Nueva Cotización
     </a>
 </div>
 
 <div class="card mb-6 p-4">
     <form method="get" class="flex flex-wrap gap-4 items-end">
         <div class="flex-1 min-w-[200px]">
-            <input type="text" name="q" value="{{ request.GET.q }}" placeholder="Buscar por número, proyecto, cliente..." class="form-input">
+            <label for="q-cot" class="sr-only">Buscar</label>
+            <input id="q-cot" type="text" name="q" value="{{ request.GET.q }}" placeholder="Buscar por número, proyecto, cliente..." class="form-input">
         </div>
         <div>
-            <select name="estado" class="form-select">
+            <label for="estado-cot" class="sr-only">Estado</label>
+            <select id="estado-cot" name="estado" class="form-select">
                 <option value="">Todos los estados</option>
                 <option value="borrador" {% if request.GET.estado == 'borrador' %}selected{% endif %}>Borrador</option>
                 <option value="enviada" {% if request.GET.estado == 'enviada' %}selected{% endif %}>Enviada</option>
@@ -26,67 +29,74 @@
                 <option value="rechazada" {% if request.GET.estado == 'rechazada' %}selected{% endif %}>Rechazada</option>
             </select>
         </div>
-        <button type="submit" class="btn-primary"><i class="fas fa-search mr-1"></i> Buscar</button>
+        <button type="submit" class="btn-primary"><i class="fas fa-search text-xs"></i> Buscar</button>
     </form>
 </div>
 
 <div class="card overflow-hidden">
     <div class="overflow-x-auto">
-        <table class="min-w-full divide-y divide-gray-200">
-            <thead class="bg-gray-50">
+        <table class="min-w-full" role="table">
+            <thead class="surface-inset border-b border-canvas-200/60">
                 <tr>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Número</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Proyecto</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Cliente</th>
-                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Total</th>
-                    <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Estado</th>
-                    <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Fecha</th>
-                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Acciones</th>
+                    <th class="table-header">Número</th>
+                    <th class="table-header hidden sm:table-cell">Proyecto</th>
+                    <th class="table-header hidden md:table-cell">Cliente</th>
+                    <th class="table-header text-right">Total</th>
+                    <th class="table-header text-center">Estado</th>
+                    <th class="table-header text-center hidden lg:table-cell">Fecha</th>
+                    <th class="table-header text-right">Acciones</th>
                 </tr>
             </thead>
-            <tbody class="divide-y divide-gray-200">
+            <tbody class="divide-y divide-canvas-100">
                 {% for cot in cotizaciones %}
-                <tr class="hover:bg-gray-50 transition-colors">
-                    <td class="px-6 py-4">
-                        <a href="{% url 'cotizacion_detail' cot.pk %}" class="text-sm font-mono font-medium text-solar-600 hover:underline">
+                <tr class="hover:bg-canvas-50 transition-base">
+                    <td class="table-cell">
+                        <a href="{% url 'cotizacion_detail' cot.pk %}" class="text-sm font-mono font-semibold text-solar-600 hover:text-solar-700 transition-base">
                             {{ cot.numero }}
                         </a>
                     </td>
-                    <td class="px-6 py-4 text-sm">{{ cot.proyecto.nombre }}</td>
-                    <td class="px-6 py-4 text-sm text-gray-600">{{ cot.proyecto.cliente.nombre }}</td>
-                    <td class="px-6 py-4 text-right text-sm font-bold">${{ cot.total|floatformat:0 }}</td>
-                    <td class="px-6 py-4 text-center">
-                        <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium
-                            {% if cot.estado == 'aprobada' %}bg-green-100 text-green-700
-                            {% elif cot.estado == 'rechazada' %}bg-red-100 text-red-700
-                            {% elif cot.estado == 'enviada' %}bg-blue-100 text-blue-700
-                            {% elif cot.estado == 'vencida' %}bg-gray-100 text-gray-500
-                            {% else %}bg-yellow-100 text-yellow-700{% endif %}">
+                    <td class="table-cell text-sm text-ink-700 hidden sm:table-cell">{{ cot.proyecto.nombre }}</td>
+                    <td class="table-cell text-sm text-ink-500 hidden md:table-cell">{{ cot.proyecto.cliente.nombre }}</td>
+                    <td class="table-cell text-right font-mono font-extrabold text-sm text-ink-900">${{ cot.total|floatformat:0|intcomma }}</td>
+                    <td class="table-cell text-center">
+                        <span class="badge
+                            {% if cot.estado == 'aprobada' %}badge-green
+                            {% elif cot.estado == 'rechazada' %}badge-red
+                            {% elif cot.estado == 'enviada' %}badge-blue
+                            {% elif cot.estado == 'vencida' %}badge-gray
+                            {% else %}badge-amber{% endif %}">
                             {{ cot.get_estado_display }}
                         </span>
                     </td>
-                    <td class="px-6 py-4 text-center text-sm text-gray-500">{{ cot.fecha_emision|date:"d/m/Y" }}</td>
-                    <td class="px-6 py-4 text-right space-x-1">
-                        <a href="{% url 'cotizacion_clonar' cot.pk %}" class="text-gray-400 hover:text-solar-600" title="Clonar"
-                           onclick="return confirm('¿Deseas clonar esta cotización?')">
-                            <i class="fas fa-copy"></i>
-                        </a>
-                        <a href="{% url 'cotizacion_pdf' cot.pk %}" class="text-red-500 hover:text-red-700" title="PDF">
-                            <i class="fas fa-file-pdf"></i>
-                        </a>
-                        <a href="{% url 'cotizacion_excel' cot.pk %}" class="text-green-500 hover:text-green-700" title="Excel">
-                            <i class="fas fa-file-excel"></i>
-                        </a>
-                        <a href="{% url 'cotizacion_update' cot.pk %}" class="text-solar-600 hover:text-solar-800" title="Editar">
-                            <i class="fas fa-edit"></i>
-                        </a>
+                    <td class="table-cell text-center text-sm text-ink-400 hidden lg:table-cell">{{ cot.fecha_emision|date:"d/m/Y" }}</td>
+                    <td class="table-cell text-right">
+                        <div class="flex items-center justify-end gap-0.5">
+                            <a href="{% url 'cotizacion_clonar' cot.pk %}" class="btn-ghost p-2 text-ink-400 hover:text-solar-600" title="Clonar"
+                               onclick="return confirm('¿Deseas clonar esta cotización?')" aria-label="Clonar {{ cot.numero }}">
+                                <i class="fas fa-copy text-sm"></i>
+                            </a>
+                            <a href="{% url 'cotizacion_pdf' cot.pk %}" class="btn-ghost p-2 text-ink-400 hover:text-red-500" title="PDF" aria-label="Descargar PDF {{ cot.numero }}">
+                                <i class="fas fa-file-pdf text-sm"></i>
+                            </a>
+                            <a href="{% url 'cotizacion_excel' cot.pk %}" class="btn-ghost p-2 text-ink-400 hover:text-green-600" title="Excel" aria-label="Descargar Excel {{ cot.numero }}">
+                                <i class="fas fa-file-excel text-sm"></i>
+                            </a>
+                            <a href="{% url 'cotizacion_update' cot.pk %}" class="btn-ghost p-2 text-ink-400 hover:text-solar-600" title="Editar" aria-label="Editar {{ cot.numero }}">
+                                <i class="fas fa-edit text-sm"></i>
+                            </a>
+                        </div>
                     </td>
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="7" class="px-6 py-12 text-center text-gray-400">
-                        <i class="fas fa-file-invoice text-4xl mb-3 block"></i>
-                        <p>No hay cotizaciones aún.</p>
+                    <td colspan="7" class="px-4 py-14 text-center">
+                        <div class="w-14 h-14 bg-canvas-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                            <i class="fas fa-file-invoice text-ink-400 text-xl"></i>
+                        </div>
+                        <p class="text-sm text-ink-500">No hay cotizaciones aún.</p>
+                        <a href="{% url 'cotizacion_create' %}" class="text-xs font-semibold text-solar-600 hover:text-solar-700 mt-2 inline-block">
+                            Crear primera cotización →
+                        </a>
                     </td>
                 </tr>
                 {% endfor %}
@@ -96,14 +106,14 @@
 </div>
 
 {% if is_paginated %}
-<div class="mt-6 flex items-center justify-center gap-2">
+<nav class="mt-6 flex items-center justify-center gap-2" aria-label="Paginación">
     {% if page_obj.has_previous %}
-    <a href="?page={{ page_obj.previous_page_number }}" class="btn-secondary text-xs">← Anterior</a>
+    <a href="?page={{ page_obj.previous_page_number }}" class="btn-ghost text-xs">← Anterior</a>
     {% endif %}
-    <span class="text-sm text-gray-500">Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
+    <span class="text-sm text-ink-500 font-medium">Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
     {% if page_obj.has_next %}
-    <a href="?page={{ page_obj.next_page_number }}" class="btn-secondary text-xs">Siguiente →</a>
+    <a href="?page={{ page_obj.next_page_number }}" class="btn-ghost text-xs">Siguiente →</a>
     {% endif %}
-</div>
+</nav>
 {% endif %}
 {% endblock %}

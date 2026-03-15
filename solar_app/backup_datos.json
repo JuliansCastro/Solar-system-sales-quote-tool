@@ -1,0 +1,50 @@
+[
+{
+  "model": "core.cliente",
+  "pk": 5,
+  "fields": {
+    "nombre": "Sebastian Zambrano",
+    "email": "sebastian@gmail.com",
+    "telefono": "3173445771",
+    "direccion": "San Vicente del Caguan, Caquetá",
+    "departamento": 18,
+    "municipio": 862,
+    "consumo_mensual_kwh": 0.0,
+    "tarifa_electrica": 850.0,
+    "estrato": 1,
+    "creado_por": 1,
+    "fecha_creacion": "2026-03-15T03:58:53.722Z",
+    "fecha_actualizacion": "2026-03-15T03:58:53.722Z",
+    "notas": ""
+  }
+},
+{
+  "model": "core.proyecto",
+  "pk": 5,
+  "fields": {
+    "codigo": "SOL-2603-0001",
+    "nombre": "Sebastian Caquetá",
+    "cliente": 5,
+    "vendedor": 1,
+    "tipo_sistema": "hybrid",
+    "estado": "en_diseno",
+    "latitud": 2.1542,
+    "longitud": -74.7147,
+    "direccion_instalacion": "",
+    "consumo_mensual_factura_kwh": null,
+    "hsp_promedio": 5.003861111111111,
+    "radiacion_anual": 1801.39,
+    "potencia_pico_kwp": 4.95,
+    "numero_paneles": 9,
+    "generacion_mensual_kwh": 603.3,
+    "porcentaje_cobertura": null,
+    "autonomia_dias": 1,
+    "capacidad_baterias_kwh": 40.61,
+    "costo_total": "24750000.00",
+    "ahorro_mensual": "0.00",
+    "roi_anos": 0.0,
+    "fecha_creacion": "2026-03-15T04:00:07.014Z",
+    "fecha_actualizacion": "2026-03-15T04:27:33.326Z"
+  }
+}
+]

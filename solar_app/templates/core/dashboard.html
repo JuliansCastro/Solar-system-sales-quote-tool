@@ -1,115 +1,123 @@
 {% extends 'base.html' %}
+{% load humanize %}
 {% block title %}Dashboard - SolarQuote{% endblock %}
 
 {% block content %}
 <!-- Header -->
-<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-8">
+<div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-8">
     <div>
-        <h1 class="text-2xl font-bold text-gray-900">Dashboard</h1>
-        <p class="text-sm text-gray-500 mt-1">Resumen general de tu actividad</p>
+        <h1 class="text-2xl font-extrabold text-ink-950 tracking-tight">Dashboard</h1>
+        <p class="text-sm text-ink-500 mt-1">Resumen general de tu actividad</p>
     </div>
-    <div class="mt-4 sm:mt-0 flex gap-2">
+    <div class="flex gap-2">
         <a href="{% url 'cliente_create' %}" class="btn-primary">
-            <i class="fas fa-plus mr-2"></i> Nuevo Cliente
+            <i class="fas fa-plus text-xs"></i> Nuevo Cliente
         </a>
         <a href="{% url 'proyecto_create' %}" class="btn-success">
-            <i class="fas fa-solar-panel mr-2"></i> Nuevo Proyecto
+            <i class="fas fa-solar-panel text-xs"></i> Nuevo Proyecto
         </a>
     </div>
 </div>
 
-<!-- Stats Cards -->
+<!-- Stats row -->
 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-    <div class="stat-card">
-        <div class="flex items-center justify-between">
+    <!-- Active projects -->
+    <div class="stat-card group">
+        <div class="flex items-start justify-between">
             <div>
-                <p class="text-sm text-gray-500">Proyectos activos</p>
-                <p class="text-3xl font-bold text-gray-900 mt-1">{{ stats.proyectos_activos }}</p>
+                <p class="data-label">Proyectos activos</p>
+                <p class="text-3xl font-extrabold text-ink-950 mt-1.5 tracking-tight">{{ stats.proyectos_activos }}</p>
             </div>
-            <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                <i class="fas fa-solar-panel text-blue-600 text-xl"></i>
+            <div class="w-10 h-10 rounded-lg bg-sky-50 flex items-center justify-center ring-1 ring-inset ring-sky-100">
+                <i class="fas fa-solar-panel text-sky-600 text-sm"></i>
             </div>
         </div>
     </div>
 
-    <div class="stat-card">
-        <div class="flex items-center justify-between">
+    <!-- Total clients -->
+    <div class="stat-card group">
+        <div class="flex items-start justify-between">
             <div>
-                <p class="text-sm text-gray-500">Total clientes</p>
-                <p class="text-3xl font-bold text-gray-900 mt-1">{{ stats.total_clientes }}</p>
+                <p class="data-label">Total clientes</p>
+                <p class="text-3xl font-extrabold text-ink-950 mt-1.5 tracking-tight">{{ stats.total_clientes }}</p>
             </div>
-            <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-                <i class="fas fa-users text-green-600 text-xl"></i>
+            <div class="w-10 h-10 rounded-lg bg-emerald-50 flex items-center justify-center ring-1 ring-inset ring-emerald-100">
+                <i class="fas fa-users text-emerald-600 text-sm"></i>
             </div>
         </div>
     </div>
 
-    <div class="stat-card">
-        <div class="flex items-center justify-between">
+    <!-- Quotes -->
+    <div class="stat-card group">
+        <div class="flex items-start justify-between">
             <div>
-                <p class="text-sm text-gray-500">Cotizaciones</p>
-                <p class="text-3xl font-bold text-gray-900 mt-1">{{ stats.total_cotizaciones }}</p>
+                <p class="data-label">Cotizaciones</p>
+                <p class="text-3xl font-extrabold text-ink-950 mt-1.5 tracking-tight">{{ stats.total_cotizaciones }}</p>
+                <p class="text-xs text-ink-500 mt-1.5">
+                    <span class="font-semibold text-amber-600">{{ stats.cotizaciones_pendientes }}</span> pendientes ·
+                    <span class="font-semibold text-emerald-600">{{ stats.cotizaciones_aprobadas }}</span> aprobadas
+                </p>
             </div>
-            <div class="w-12 h-12 bg-solar-100 rounded-lg flex items-center justify-center">
-                <i class="fas fa-file-invoice-dollar text-solar-600 text-xl"></i>
+            <div class="w-10 h-10 rounded-lg bg-solar-50 flex items-center justify-center ring-1 ring-inset ring-solar-100">
+                <i class="fas fa-file-invoice-dollar text-solar-600 text-sm"></i>
             </div>
         </div>
-        <p class="text-xs text-gray-400 mt-2">
-            {{ stats.cotizaciones_pendientes }} pendientes · {{ stats.cotizaciones_aprobadas }} aprobadas
-        </p>
     </div>
 
-    <div class="stat-card">
-        <div class="flex items-center justify-between">
+    <!-- Quote value -->
+    <div class="stat-card group">
+        <div class="flex items-start justify-between">
             <div>
-                <p class="text-sm text-gray-500">Valor en cotizaciones</p>
-                <p class="text-2xl font-bold text-gray-900 mt-1">${{ stats.valor_cotizaciones|floatformat:0 }}</p>
+                <p class="data-label">Valor en cotizaciones</p>
+                <p class="text-2xl font-extrabold text-ink-950 mt-1.5 tracking-tight font-mono">${{ stats.valor_cotizaciones|floatformat:0|intcomma }}</p>
             </div>
-            <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
-                <i class="fas fa-coins text-purple-600 text-xl"></i>
+            <div class="w-10 h-10 rounded-lg bg-violet-50 flex items-center justify-center ring-1 ring-inset ring-violet-100">
+                <i class="fas fa-coins text-violet-600 text-sm"></i>
             </div>
         </div>
     </div>
 </div>
 
+<!-- Recent activity columns -->
 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
     <!-- Recent Projects -->
     <div class="card">
-        <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-            <h2 class="text-lg font-semibold text-gray-900">Proyectos recientes</h2>
-            <a href="{% url 'proyecto_list' %}" class="text-sm text-solar-600 hover:text-solar-700">Ver todos →</a>
+        <div class="px-5 py-4 border-b border-canvas-200/60 flex items-center justify-between">
+            <h2 class="text-sm font-bold text-ink-900 uppercase tracking-wider">Proyectos recientes</h2>
+            <a href="{% url 'proyecto_list' %}" class="text-xs font-semibold text-solar-600 hover:text-solar-700 transition-base">Ver todos →</a>
         </div>
-        <div class="divide-y divide-gray-100">
+        <div class="divide-y divide-canvas-100">
             {% for proyecto in proyectos_recientes %}
-            <a href="{% url 'proyecto_detail' proyecto.pk %}" class="block px-6 py-4 hover:bg-gray-50 transition-colors">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-sm font-medium text-gray-900">{{ proyecto.nombre }}</p>
-                        <p class="text-xs text-gray-500 mt-0.5">
-                            {{ proyecto.codigo }} · {{ proyecto.cliente.nombre }}
-                        </p>
-                    </div>
-                    <div class="flex items-center gap-2">
-                        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium
-                            {% if proyecto.tipo_sistema == 'on_grid' %}bg-blue-100 text-blue-700
-                            {% elif proyecto.tipo_sistema == 'off_grid' %}bg-orange-100 text-orange-700
-                            {% else %}bg-purple-100 text-purple-700{% endif %}">
-                            {{ proyecto.get_tipo_sistema_display }}
-                        </span>
-                        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium
-                            {% if proyecto.estado == 'completado' %}bg-green-100 text-green-700
-                            {% elif proyecto.estado == 'cancelado' %}bg-red-100 text-red-700
-                            {% elif proyecto.estado == 'cotizado' %}bg-solar-100 text-solar-700
-                            {% else %}bg-gray-100 text-gray-700{% endif %}">
-                            {{ proyecto.get_estado_display }}
-                        </span>
-                    </div>
+            <a href="{% url 'proyecto_detail' proyecto.pk %}" class="flex items-center justify-between px-5 py-3.5 hover:bg-canvas-50 transition-base group">
+                <div class="min-w-0 flex-1">
+                    <p class="text-sm font-semibold text-ink-900 group-hover:text-solar-700 truncate transition-base">{{ proyecto.nombre }}</p>
+                    <p class="text-xs text-ink-500 mt-0.5 font-mono">
+                        {{ proyecto.codigo }} · <span class="font-sans">{{ proyecto.cliente.nombre }}</span>
+                    </p>
+                </div>
+                <div class="flex items-center gap-1.5 ml-3 flex-shrink-0">
+                    <span class="badge
+                        {% if proyecto.tipo_sistema == 'on_grid' %}badge-blue
+                        {% elif proyecto.tipo_sistema == 'off_grid' %}badge-orange
+                        {% else %}badge-purple{% endif %}">
+                        {{ proyecto.get_tipo_sistema_display }}
+                    </span>
+                    <span class="badge
+                        {% if proyecto.estado == 'completado' %}badge-green
+                        {% elif proyecto.estado == 'cancelado' %}badge-red
+                        {% elif proyecto.estado == 'cotizado' %}badge-amber
+                        {% else %}badge-gray{% endif %}">
+                        {{ proyecto.get_estado_display }}
+                    </span>
                 </div>
             </a>
             {% empty %}
-            <div class="px-6 py-8 text-center text-gray-400">
-                <i class="fas fa-solar-panel text-3xl mb-2"></i>
-                <p class="text-sm">No hay proyectos aún</p>
+            <div class="px-5 py-10 text-center">
+                <div class="w-12 h-12 bg-canvas-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <i class="fas fa-solar-panel text-ink-400 text-lg"></i>
+                </div>
+                <p class="text-sm text-ink-500">No hay proyectos aún</p>
+                <a href="{% url 'proyecto_create' %}" class="text-xs font-semibold text-solar-600 hover:text-solar-700 mt-1 inline-block">Crear primer proyecto →</a>
             </div>
             {% endfor %}
         </div>
@@ -117,34 +125,34 @@
 
     <!-- Recent Quotes -->
     <div class="card">
-        <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-            <h2 class="text-lg font-semibold text-gray-900">Cotizaciones recientes</h2>
-            <a href="{% url 'cotizacion_list' %}" class="text-sm text-solar-600 hover:text-solar-700">Ver todas →</a>
+        <div class="px-5 py-4 border-b border-canvas-200/60 flex items-center justify-between">
+            <h2 class="text-sm font-bold text-ink-900 uppercase tracking-wider">Cotizaciones recientes</h2>
+            <a href="{% url 'cotizacion_list' %}" class="text-xs font-semibold text-solar-600 hover:text-solar-700 transition-base">Ver todas →</a>
         </div>
-        <div class="divide-y divide-gray-100">
+        <div class="divide-y divide-canvas-100">
             {% for cot in cotizaciones_recientes %}
-            <a href="{% url 'cotizacion_detail' cot.pk %}" class="block px-6 py-4 hover:bg-gray-50 transition-colors">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-sm font-medium text-gray-900">{{ cot.numero }}</p>
-                        <p class="text-xs text-gray-500 mt-0.5">{{ cot.proyecto.cliente.nombre }}</p>
-                    </div>
-                    <div class="text-right">
-                        <p class="text-sm font-semibold text-gray-900">${{ cot.total|floatformat:0 }}</p>
-                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium
-                            {% if cot.estado == 'aprobada' %}bg-green-100 text-green-700
-                            {% elif cot.estado == 'rechazada' %}bg-red-100 text-red-700
-                            {% elif cot.estado == 'enviada' %}bg-blue-100 text-blue-700
-                            {% else %}bg-gray-100 text-gray-700{% endif %}">
-                            {{ cot.get_estado_display }}
-                        </span>
-                    </div>
+            <a href="{% url 'cotizacion_detail' cot.pk %}" class="flex items-center justify-between px-5 py-3.5 hover:bg-canvas-50 transition-base group">
+                <div class="min-w-0">
+                    <p class="text-sm font-semibold text-ink-900 group-hover:text-solar-700 transition-base">{{ cot.numero }}</p>
+                    <p class="text-xs text-ink-500 mt-0.5">{{ cot.proyecto.cliente.nombre }}</p>
+                </div>
+                <div class="text-right ml-3 flex-shrink-0">
+                    <p class="text-sm font-bold text-ink-900 font-mono">${{ cot.total|floatformat:0|intcomma }}</p>
+                    <span class="badge mt-0.5
+                        {% if cot.estado == 'aprobada' %}badge-green
+                        {% elif cot.estado == 'rechazada' %}badge-red
+                        {% elif cot.estado == 'enviada' %}badge-blue
+                        {% else %}badge-gray{% endif %}">
+                        {{ cot.get_estado_display }}
+                    </span>
                 </div>
             </a>
             {% empty %}
-            <div class="px-6 py-8 text-center text-gray-400">
-                <i class="fas fa-file-invoice text-3xl mb-2"></i>
-                <p class="text-sm">No hay cotizaciones aún</p>
+            <div class="px-5 py-10 text-center">
+                <div class="w-12 h-12 bg-canvas-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <i class="fas fa-file-invoice text-ink-400 text-lg"></i>
+                </div>
+                <p class="text-sm text-ink-500">No hay cotizaciones aún</p>
             </div>
             {% endfor %}
         </div>
@@ -154,28 +162,32 @@
 <!-- Stock Alerts -->
 {% if equipos_sin_stock or equipos_bajo_stock %}
 <div class="mt-6 card">
-    <div class="px-6 py-4 border-b border-gray-200">
-        <h2 class="text-lg font-semibold text-gray-900">
-            <i class="fas fa-exclamation-triangle text-yellow-500 mr-2"></i>
+    <div class="px-5 py-4 border-b border-canvas-200/60">
+        <h2 class="text-sm font-bold text-ink-900 uppercase tracking-wider">
+            <i class="fas fa-exclamation-triangle text-amber-500 mr-1.5"></i>
             Alertas de inventario
         </h2>
     </div>
-    <div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div class="p-5 grid grid-cols-1 md:grid-cols-2 gap-3">
         {% for equipo in equipos_sin_stock %}
-        <div class="flex items-center gap-3 p-3 bg-red-50 rounded-lg border border-red-200">
-            <i class="fas fa-times-circle text-red-500"></i>
-            <div class="flex-1">
-                <p class="text-sm font-medium text-red-800">{{ equipo.nombre }}</p>
-                <p class="text-xs text-red-600">Sin stock · {{ equipo.sku }}</p>
+        <div class="flex items-center gap-3 p-3 bg-red-50 rounded-lg border border-red-200/60">
+            <div class="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
+                <i class="fas fa-times text-red-500 text-xs"></i>
+            </div>
+            <div class="min-w-0 flex-1">
+                <p class="text-sm font-semibold text-red-800 truncate">{{ equipo.nombre }}</p>
+                <p class="text-xs text-red-600">Sin stock · <span class="font-mono">{{ equipo.sku }}</span></p>
             </div>
         </div>
         {% endfor %}
         {% for equipo in equipos_bajo_stock %}
-        <div class="flex items-center gap-3 p-3 bg-yellow-50 rounded-lg border border-yellow-200">
-            <i class="fas fa-exclamation-circle text-yellow-500"></i>
-            <div class="flex-1">
-                <p class="text-sm font-medium text-yellow-800">{{ equipo.nombre }}</p>
-                <p class="text-xs text-yellow-600">Stock bajo: {{ equipo.stock }} uds · {{ equipo.sku }}</p>
+        <div class="flex items-center gap-3 p-3 bg-amber-50 rounded-lg border border-amber-200/60">
+            <div class="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0">
+                <i class="fas fa-exclamation text-amber-500 text-xs"></i>
+            </div>
+            <div class="min-w-0 flex-1">
+                <p class="text-sm font-semibold text-amber-800 truncate">{{ equipo.nombre }}</p>
+                <p class="text-xs text-amber-600">Stock bajo: {{ equipo.stock }} uds · <span class="font-mono">{{ equipo.sku }}</span></p>
             </div>
         </div>
         {% endfor %}

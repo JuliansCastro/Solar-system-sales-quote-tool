@@ -35,5 +35,11 @@ postgres_data/
 # Logs
 *.log
 
+# Backups
+backups/
+*.sql.gz
+*.sqlite3.gz
+*.sha256
+
 # Migrations
 solar_app/core/migrations/*.py

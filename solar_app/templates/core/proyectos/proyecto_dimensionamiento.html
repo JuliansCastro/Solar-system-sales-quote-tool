@@ -4,14 +4,33 @@
 
 {% block content %}
 <div class="mb-6">
-    <a href="{% url 'proyecto_detail' proyecto.pk %}" class="text-sm text-gray-500 hover:text-solar-600">
+    <a href="{% url 'proyecto_detail' proyecto.pk %}" class="text-sm text-ink-400 hover:text-solar-600 transition-base">
         <i class="fas fa-arrow-left mr-1"></i> Volver al proyecto
     </a>
-    <h1 class="text-2xl font-bold text-gray-900 mt-2">
+    <h1 class="text-2xl font-extrabold text-ink-950 tracking-tight mt-2">
         <i class="fas fa-calculator text-solar-500 mr-2"></i>Dimensionamiento del sistema
     </h1>
-    <p class="text-sm text-gray-500">{{ proyecto.nombre }} · {{ proyecto.get_tipo_sistema_display }}</p>
+    <p class="text-sm text-ink-400">{{ proyecto.nombre }} · {{ proyecto.get_tipo_sistema_display }}</p>
 </div>
+
+<!-- Tab Navigation -->
+<div class="mb-6 flex gap-2 border-b border-canvas-200">
+    <button class="tab-btn tab-active px-6 py-3 font-medium border-b-2 border-solar-500 text-solar-600" data-tab="dimensionamiento">
+        <i class="fas fa-calculator mr-2"></i>Dimensionamiento
+    </button>
+    <button class="tab-btn px-6 py-3 font-medium border-b-2 border-transparent text-ink-600 hover:text-ink-900" data-tab="equipos">
+        <i class="fas fa-th mr-2"></i>Seleccionar equipos
+    </button>
+    <button class="tab-btn px-6 py-3 font-medium border-b-2 border-transparent text-ink-600 hover:text-ink-900" data-tab="comparacion">
+        <i class="fas fa-chart-bar mr-2"></i>Análisis comparativo
+    </button>
+</div>
+
+<!-- TAB 1: DIMENSIONAMIENTO (Original) -->
+<div id="tab-dimensionamiento" class="tab-content">
+
+<!-- Equipment-based Alerts -->
+<div id="equipment-alerts-container"></div>
 
 {% if pvgis_data.error %}
 <div class="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg text-sm text-yellow-800">
@@ -23,26 +42,26 @@
 {% if resultado %}
 <!-- Results Summary -->
 <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-    <div class="stat-card text-center bg-gradient-to-br from-solar-50 to-solar-100">
+    <div class="stat-card text-center bg-solar-50">
         <i class="fas fa-solar-panel text-solar-500 text-2xl mb-2"></i>
-        <p class="text-3xl font-bold text-solar-700">{{ resultado.potencia_pico_kwp }}</p>
-        <p class="text-sm text-gray-600">kWp Potencia pico</p>
+        <p class="text-3xl font-extrabold font-mono text-solar-700" id="value-potencia-pico">{{ resultado.potencia_pico_kwp }}</p>
+        <p class="text-sm text-ink-500">kWp Potencia pico</p>
     </div>
     <div class="stat-card text-center">
         <i class="fas fa-th text-blue-500 text-2xl mb-2"></i>
-        <p class="text-3xl font-bold text-gray-900">{{ resultado.numero_paneles }}</p>
-        <p class="text-sm text-gray-600">Paneles de {{ resultado.potencia_panel_w|floatformat:0 }}W</p>
+        <p class="text-3xl font-extrabold font-mono text-ink-900" id="value-numero-paneles">{{ resultado.numero_paneles }}</p>
+        <p class="text-sm text-ink-500">Paneles <span id="value-potencia-panel">{{ resultado.potencia_panel_w|floatformat:0 }}</span>W</p>
     </div>
     <div class="stat-card text-center">
         <i class="fas fa-bolt text-green-500 text-2xl mb-2"></i>
-        <p class="text-3xl font-bold text-green-600">{{ resultado.generacion_mensual_kwh|floatformat:0 }}</p>
-        <p class="text-sm text-gray-600">kWh/mes generados</p>
+        <p class="text-3xl font-extrabold font-mono text-green-600" id="value-generacion-mensual">{{ resultado.generacion_mensual_kwh|floatformat:0 }}</p>
+        <p class="text-sm text-ink-500">kWh/mes generados</p>
     </div>
     {% if resultado.porcentaje_cobertura %}
     <div class="stat-card text-center">
         <i class="fas fa-chart-pie text-purple-500 text-2xl mb-2"></i>
-        <p class="text-3xl font-bold text-purple-600">{{ resultado.porcentaje_cobertura|floatformat:0 }}%</p>
-        <p class="text-sm text-gray-600">Cobertura solar</p>
+        <p class="text-3xl font-extrabold font-mono text-purple-600" id="value-cobertura">{{ resultado.porcentaje_cobertura|floatformat:0 }}</p>
+        <p class="text-sm text-ink-500">Cobertura solar</p>
     </div>
     {% endif %}
 </div>
@@ -50,46 +69,46 @@
 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
     <!-- Technical Details -->
     <div class="card p-6">
-        <h3 class="text-lg font-semibold text-gray-800 mb-4">Datos técnicos</h3>
+        <h3 class="text-lg font-semibold text-ink-800 mb-4">Datos técnicos</h3>
         <dl class="space-y-3">
-            <div class="flex justify-between border-b border-gray-100 pb-2">
-                <dt class="text-sm text-gray-500">HSP promedio</dt>
-                <dd class="text-sm font-medium">{{ proyecto.hsp_promedio|floatformat:2 }} h/día</dd>
+            <div class="flex justify-between border-b border-canvas-100 pb-2">
+                <dt class="text-sm text-ink-500">HSP promedio</dt>
+                <dd class="text-sm font-medium font-mono">{{ proyecto.hsp_promedio|floatformat:2 }} h/día</dd>
             </div>
             {% if proyecto.consumo_mensual_factura_kwh %}
-            <div class="flex justify-between border-b border-gray-100 pb-2">
-                <dt class="text-sm text-gray-500">Consumo mensual factura</dt>
-                <dd class="text-sm font-medium text-solar-700">{{ proyecto.consumo_mensual_factura_kwh }} kWh</dd>
+            <div class="flex justify-between border-b border-canvas-100 pb-2">
+                <dt class="text-sm text-ink-500">Consumo mensual factura</dt>
+                <dd class="text-sm font-medium font-mono text-solar-700">{{ proyecto.consumo_mensual_factura_kwh }} kWh</dd>
             </div>
-            <div class="flex justify-between border-b border-gray-100 pb-2">
-                <dt class="text-sm text-gray-500">Consumo diario (factura)</dt>
-                <dd class="text-sm font-medium text-solar-700">{{ proyecto.consumo_diario_kwh }} kWh/día</dd>
+            <div class="flex justify-between border-b border-canvas-100 pb-2">
+                <dt class="text-sm text-ink-500">Consumo diario (factura)</dt>
+                <dd class="text-sm font-medium font-mono text-solar-700">{{ proyecto.consumo_diario_kwh }} kWh/día</dd>
             </div>
             {% endif %}
-            <div class="flex justify-between border-b border-gray-100 pb-2">
-                <dt class="text-sm text-gray-500">Consumo mensual {% if proyecto.consumo_mensual_factura_kwh %}(cliente){% else %}usado{% endif %}</dt>
-                <dd class="text-sm font-medium">{{ proyecto.consumo_mensual_efectivo_kwh }} kWh</dd>
+            <div class="flex justify-between border-b border-canvas-100 pb-2">
+                <dt class="text-sm text-ink-500">Consumo mensual {% if proyecto.consumo_mensual_factura_kwh %}(cliente){% else %}usado{% endif %}</dt>
+                <dd class="text-sm font-medium font-mono">{{ proyecto.consumo_mensual_efectivo_kwh }} kWh</dd>
             </div>
-            <div class="flex justify-between border-b border-gray-100 pb-2">
-                <dt class="text-sm text-gray-500">Generación mensual</dt>
-                <dd class="text-sm font-medium text-green-600">{{ resultado.generacion_mensual_kwh|floatformat:0 }} kWh</dd>
+            <div class="flex justify-between border-b border-canvas-100 pb-2">
+                <dt class="text-sm text-ink-500">Generación mensual</dt>
+                <dd class="text-sm font-medium font-mono text-green-600" id="detail-generacion-mensual">{{ resultado.generacion_mensual_kwh|floatformat:0 }} kWh</dd>
             </div>
             {% if resultado.area_requerida_m2 %}
-            <div class="flex justify-between border-b border-gray-100 pb-2">
-                <dt class="text-sm text-gray-500">Área requerida</dt>
-                <dd class="text-sm font-medium">{{ resultado.area_requerida_m2 }} m²</dd>
+            <div class="flex justify-between border-b border-canvas-100 pb-2">
+                <dt class="text-sm text-ink-500">Área requerida</dt>
+                <dd class="text-sm font-medium font-mono" id="detail-area-requerida">{{ resultado.area_requerida_m2 }} m²</dd>
             </div>
             {% endif %}
             {% if resultado.inversor_potencia_kw %}
-            <div class="flex justify-between border-b border-gray-100 pb-2">
-                <dt class="text-sm text-gray-500">Inversor recomendado</dt>
-                <dd class="text-sm font-medium">{{ resultado.inversor_potencia_kw }} kW</dd>
+            <div class="flex justify-between border-b border-canvas-100 pb-2">
+                <dt class="text-sm text-ink-500">Inversor recomendado</dt>
+                <dd class="text-sm font-medium font-mono" id="detail-inversor-potencia">{{ resultado.inversor_potencia_kw }} kW</dd>
             </div>
             {% endif %}
             {% if resultado.co2_evitado_ton_ano %}
             <div class="flex justify-between">
-                <dt class="text-sm text-gray-500">CO₂ evitado por año</dt>
-                <dd class="text-sm font-medium text-green-600">{{ resultado.co2_evitado_ton_ano }} ton</dd>
+                <dt class="text-sm text-ink-500">CO₂ evitado por año</dt>
+                <dd class="text-sm font-medium font-mono text-green-600" id="detail-co2-evitado">{{ resultado.co2_evitado_ton_ano }} ton</dd>
             </div>
             {% endif %}
         </dl>
@@ -97,42 +116,42 @@
 
     <!-- Financial Summary -->
     <div class="card p-6">
-        <h3 class="text-lg font-semibold text-gray-800 mb-4">
+        <h3 class="text-lg font-semibold text-ink-800 mb-4">
             <i class="fas fa-coins text-solar-500 mr-2"></i>Análisis financiero
         </h3>
         <dl class="space-y-3">
             {% if resultado.costo_estimado_sistema %}
-            <div class="flex justify-between border-b border-gray-100 pb-2">
-                <dt class="text-sm text-gray-500">Inversión estimada</dt>
-                <dd class="text-sm font-bold text-gray-900">${{ resultado.costo_estimado_sistema|floatformat:0|intcomma }}</dd>
+            <div class="flex justify-between border-b border-canvas-100 pb-2">
+                <dt class="text-sm text-ink-500">Inversión estimada</dt>
+                <dd class="text-sm font-extrabold font-mono text-ink-900" id="detail-costo-estimado">${{ resultado.costo_estimado_sistema|floatformat:0|intcomma }}</dd>
             </div>
             {% endif %}
             {% if resultado.ahorro_mensual_cop %}
-            <div class="flex justify-between border-b border-gray-100 pb-2">
-                <dt class="text-sm text-gray-500">Ahorro mensual</dt>
-                <dd class="text-sm font-bold text-green-600">${{ resultado.ahorro_mensual_cop|floatformat:0|intcomma }}</dd>
+            <div class="flex justify-between border-b border-canvas-100 pb-2">
+                <dt class="text-sm text-ink-500">Ahorro mensual</dt>
+                <dd class="text-sm font-extrabold font-mono text-green-600" id="detail-ahorro-mensual">${{ resultado.ahorro_mensual_cop|floatformat:0|intcomma }}</dd>
             </div>
-            <div class="flex justify-between border-b border-gray-100 pb-2">
-                <dt class="text-sm text-gray-500">Ahorro anual</dt>
-                <dd class="text-sm font-bold text-green-600">${{ resultado.ahorro_anual_cop|floatformat:0|intcomma }}</dd>
+            <div class="flex justify-between border-b border-canvas-100 pb-2">
+                <dt class="text-sm text-ink-500">Ahorro anual</dt>
+                <dd class="text-sm font-extrabold font-mono text-green-600" id="detail-ahorro-anual">${{ resultado.ahorro_anual_cop|floatformat:0|intcomma }}</dd>
             </div>
             {% endif %}
             {% if resultado.roi_anos %}
-            <div class="flex justify-between border-b border-gray-100 pb-2">
-                <dt class="text-sm text-gray-500">Retorno de inversión</dt>
-                <dd class="text-sm font-bold text-solar-600">{{ resultado.roi_anos }} años</dd>
+            <div class="flex justify-between border-b border-canvas-100 pb-2">
+                <dt class="text-sm text-ink-500">Retorno de inversión</dt>
+                <dd class="text-sm font-extrabold font-mono text-solar-600" id="detail-roi-anos">{{ resultado.roi_anos }} años</dd>
             </div>
             {% endif %}
             {% if resultado.ahorro_acumulado_25_anos %}
             <div class="flex justify-between">
-                <dt class="text-sm text-gray-500">Ahorro acumulado (25 años)</dt>
-                <dd class="text-sm font-bold text-green-700">${{ resultado.ahorro_acumulado_25_anos|floatformat:0|intcomma }}</dd>
+                <dt class="text-sm text-ink-500">Ahorro acumulado (25 años)</dt>
+                <dd class="text-sm font-extrabold font-mono text-green-700" id="detail-ahorro-acumulado">${{ resultado.ahorro_acumulado_25_anos|floatformat:0|intcomma }}</dd>
             </div>
             {% endif %}
         </dl>
 
         {% if resultado.roi_anos %}
-        <div class="mt-4 p-4 bg-green-50 rounded-lg border border-green-200">
+        <div class="mt-4 p-4 bg-green-50 rounded-soft border border-green-200">
             <p class="text-sm text-green-800">
                 <i class="fas fa-check-circle mr-1"></i>
                 <strong>La inversión se recupera en {{ resultado.roi_anos }} años.</strong>
@@ -146,12 +165,12 @@
 <!-- Charts -->
 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
     <div class="card p-6">
-        <h3 class="text-lg font-semibold text-gray-800 mb-4">Consumo vs Generación Solar</h3>
+        <h3 class="text-lg font-semibold text-ink-800 mb-4">Consumo vs Generación Solar</h3>
         <div id="chart-consumo" style="height:300px;"></div>
     </div>
     {% if proyeccion %}
     <div class="card p-6">
-        <h3 class="text-lg font-semibold text-gray-800 mb-4">Retorno de inversión acumulado</h3>
+        <h3 class="text-lg font-semibold text-ink-800 mb-4">Retorno de inversión acumulado</h3>
         <div id="chart-roi" style="height:300px;"></div>
     </div>
     {% endif %}
@@ -160,11 +179,11 @@
 {% if pvgis_data.radiacion_mensual %}
 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
     <div class="card p-6">
-        <h3 class="text-lg font-semibold text-gray-800 mb-4">Radiación solar mensual (PVGIS)</h3>
+        <h3 class="text-lg font-semibold text-ink-800 mb-4">Radiación solar mensual (PVGIS)</h3>
         <div id="chart-radiacion" style="height:300px;"></div>
     </div>
     <div class="card p-6">
-        <h3 class="text-lg font-semibold text-gray-800 mb-4">HSP - Horas Solar Pico (PVGIS)</h3>
+        <h3 class="text-lg font-semibold text-ink-800 mb-4">HSP - Horas Solar Pico (PVGIS)</h3>
         <div id="chart-hsp" style="height:300px;"></div>
     </div>
 </div>
@@ -173,35 +192,35 @@
 <!-- Equipment Suggestions -->
 {% if sugerencias %}
 <div class="card mb-6">
-    <div class="px-6 py-4 border-b border-gray-200">
-        <h3 class="text-lg font-semibold text-gray-800">
+    <div class="px-6 py-4 border-b border-canvas-200">
+        <h3 class="text-lg font-semibold text-ink-800">
             <i class="fas fa-lightbulb text-solar-500 mr-2"></i>Equipos sugeridos del inventario
         </h3>
     </div>
     <div class="overflow-x-auto">
-        <table class="min-w-full divide-y divide-gray-200 text-sm">
-            <thead class="bg-gray-50">
+        <table class="min-w-full text-sm" role="table">
+            <thead class="surface-inset border-b border-canvas-200/60">
                 <tr>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">Componente</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">Equipo sugerido</th>
-                    <th class="px-6 py-3 text-center text-xs font-medium text-gray-500">Cantidad</th>
-                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500">Precio unit.</th>
-                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500">Subtotal</th>
+                    <th class="table-header">Componente</th>
+                    <th class="table-header">Equipo sugerido</th>
+                    <th class="table-header text-center">Cantidad</th>
+                    <th class="table-header text-right">Precio unit.</th>
+                    <th class="table-header text-right">Subtotal</th>
                 </tr>
             </thead>
-            <tbody class="divide-y divide-gray-100">
+            <tbody class="divide-y divide-canvas-100">
                 {% for key, sug in sugerencias.items %}
-                <tr>
-                    <td class="px-6 py-3 font-medium capitalize">{{ key }}</td>
-                    <td class="px-6 py-3">
-                        <a href="{% url 'equipo_detail' sug.equipo.pk %}" class="text-solar-600 hover:underline">
+                <tr class="hover:bg-canvas-50 transition-base">
+                    <td class="table-cell font-medium capitalize">{{ key }}</td>
+                    <td class="table-cell">
+                        <a href="{% url 'equipo_detail' sug.equipo.pk %}" class="text-solar-600 hover:text-solar-700 transition-base">
                             {{ sug.equipo.fabricante }} {{ sug.equipo.modelo }}
                         </a>
-                        <span class="text-xs text-gray-400 ml-1">{{ sug.equipo.potencia_nominal_w }}W</span>
+                        <span class="text-xs text-ink-400 ml-1 font-mono">{{ sug.equipo.potencia_nominal_w }}W</span>
                     </td>
-                    <td class="px-6 py-3 text-center">{{ sug.cantidad }}</td>
-                    <td class="px-6 py-3 text-right">${{ sug.equipo.precio_venta|floatformat:0 }}</td>
-                    <td class="px-6 py-3 text-right font-semibold">${{ sug.equipo.precio_venta|floatformat:0 }}</td>
+                    <td class="table-cell text-center font-mono">{{ sug.cantidad }}</td>
+                    <td class="table-cell text-right font-mono">${{ sug.equipo.precio_venta|floatformat:0|intcomma }}</td>
+                    <td class="table-cell text-right font-mono font-semibold">${{ sug.equipo.precio_venta|floatformat:0|intcomma }}</td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -209,6 +228,114 @@
     </div>
 </div>
 {% endif %}
+
+</div>
+
+<!-- TAB 2: SELECCIONAR EQUIPOS -->
+<div id="tab-equipos" class="tab-content hidden">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Equipment Selection Panel -->
+        <div class="lg:col-span-1">
+            <div class="card p-6 sticky top-6">
+                <h3 class="text-lg font-semibold text-ink-800 mb-4">
+                    <i class="fas fa-plus-circle text-solar-500 mr-2"></i>Agregar equipos
+                </h3>
+                <div class="space-y-4" id="equipment-selection">
+                    {% for categoria_label, equipos in equipos_por_categoria.items %}
+                    <div class="border-t border-canvas-200 pt-4 first:border-t-0 first:pt-0">
+                        <label class="text-sm font-semibold text-ink-700 block mb-2">{{ categoria_label }}</label>
+                        <select class="equipment-select w-full px-3 py-2 border border-canvas-300 rounded-lg text-sm focus:ring-2 focus:ring-solar-500 focus:border-transparent"
+                                data-category="{{ categoria_label }}">
+                            <option value="">-- Seleccionar equipo --</option>
+                            {% for equipo in equipos %}
+                            <option value="{{ equipo.pk }}" data-nombre="{{ equipo.fabricante }} {{ equipo.modelo }}" data-precio="{{ equipo.precio_venta }}">
+                                {{ equipo.fabricante }} {{ equipo.modelo }} - {{ equipo.potencia_nominal_w }}W
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    {% endfor %}
+                </div>
+                
+                <div class="mt-6 pt-4 border-t border-canvas-200">
+                    <label class="text-sm font-semibold text-ink-700 block mb-2">Cantidad</label>
+                    <div class="flex gap-2">
+                        <input type="number" id="equipment-qty" class="flex-1 px-3 py-2 border border-canvas-300 rounded-lg text-sm" 
+                               value="1" min="1" max="100">
+                        <button id="add-equipment-btn" class="btn-primary px-4 py-2 text-sm">
+                            <i class="fas fa-plus mr-1"></i>Agregar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Selected Equipment List -->
+        <div class="lg:col-span-2">
+            <div class="card p-6">
+                <h3 class="text-lg font-semibold text-ink-800 mb-4">
+                    <i class="fas fa-list text-blue-500 mr-2"></i>Equipos seleccionados
+                </h3>
+                
+                <div id="selected-equipment-list" class="space-y-3 mb-6">
+                    {% if equipos_seleccionados %}
+                        {% for sel in equipos_seleccionados %}
+                        <div class="equipment-item bg-canvas-50 p-4 rounded-lg border-l-4 border-solar-500 flex justify-between items-start" data-selected-id="{{ sel.pk }}">
+                            <div class="flex-1">
+                                <p class="font-medium text-ink-900">{{ sel.equipo.fabricante }} {{ sel.equipo.modelo }}</p>
+                                <p class="text-sm text-ink-500">{{ sel.get_tipo_equipo_display }} · {{ sel.equipo.get_categoria_display }}</p>
+                                <p class="text-xs text-ink-400 mt-1">{{ sel.equipo.potencia_nominal_w }}W · Stock: {{ sel.equipo.stock }}</p>
+                            </div>
+                            <div class="text-right ml-4">
+                                <div class="flex items-center gap-2 mb-2 justify-end">
+                                    <button class="qty-minus px-2 py-1 bg-canvas-200 hover:bg-canvas-300 rounded text-sm" data-selected-id="{{ sel.pk }}">−</button>
+                                    <span class="qty-display w-8 text-center font-semibold">{{ sel.cantidad }}</span>
+                                    <button class="qty-plus px-2 py-1 bg-canvas-200 hover:bg-canvas-300 rounded text-sm" data-selected-id="{{ sel.pk }}">+</button>
+                                </div>
+                                <p class="text-sm font-semibold text-solar-600">${{ sel.equipo.precio_venta|floatformat:0|intcomma }}</p>
+                                <p class="text-xs text-ink-500">c/u</p>
+                            </div>
+                            <button class="remove-equipment ml-2 text-red-500 hover:text-red-700 transition-base" data-selected-id="{{ sel.pk }}" title="Eliminar">
+                                <i class="fas fa-trash-alt"></i>
+                            </button>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                    <div class="text-center py-8 text-ink-400">
+                        <i class="fas fa-inbox text-4xl mb-2 opacity-50"></i>
+                        <p class="text-sm">No hay equipos seleccionados aún</p>
+                        <p class="text-xs text-ink-500 mt-1">Selecciona equipos del panel izquierdo</p>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Summary -->
+                <div class="bg-solar-50 border border-solar-200 rounded-lg p-4 mt-6">
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="text-ink-700">Total de equipos:</span>
+                        <span class="font-semibold text-ink-900" id="total-qty">
+                            {% for sel in equipos_seleccionados %}{% if not forloop.first %}+{% endif %}{{ sel.cantidad }}{% endfor %}
+                        </span>
+                    </div>
+                    <div class="flex justify-between items-center pt-2 border-t border-solar-200">
+                        <span class="text-ink-700 font-semibold">Costo total:</span>
+                        <span class="text-lg font-extrabold text-solar-600" id="total-cost">$0</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- TAB 3: ANÁLISIS COMPARATIVO -->
+<div id="tab-comparacion" class="tab-content hidden">
+    <div class="card p-6 mb-6">
+        <h3 class="text-lg font-semibold text-ink-800 mb-4 text-blue-700">
+            <i class="fas fa-exchange-alt mr-2"></i>En construcción
+        </h3>
+        <p class="text-ink-600">Próximamente podrá comparar diferentes configuraciones de equipos y ver el impacto financiero.</p>
+    </div>
+</div>
 
 <!-- Actions -->
 <div class="flex items-center justify-center gap-4 mb-6">
@@ -223,123 +350,483 @@
 {% else %}
 <div class="card p-12 text-center">
     <i class="fas fa-exclamation-circle text-yellow-500 text-4xl mb-4"></i>
-    <p class="text-lg text-gray-600">No se pudo realizar el dimensionamiento.</p>
-    <p class="text-sm text-gray-400 mt-2">Verifica que el proyecto tenga datos completos.</p>
+    <p class="text-lg text-ink-500">No se pudo realizar el dimensionamiento.</p>
+    <p class="text-sm text-ink-400 mt-2">Verifica que el proyecto tenga datos completos.</p>
 </div>
 {% endif %}
+
 {% endblock %}
 
 {% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // Tab switching logic
+  const tabs = document.querySelectorAll('.tab-btn');
+  const contents = document.querySelectorAll('.tab-content');
+  
+  tabs.forEach(tab => {
+    tab.addEventListener('click', function() {
+      const tabName = this.dataset.tab;
+      
+      // Hide all tabs
+      contents.forEach(content => {
+        content.classList.add('hidden');
+      });
+      
+      // Remove active state from all buttons
+      tabs.forEach(t => {
+        t.classList.remove('tab-active', 'border-solar-500', 'text-solar-600');
+        t.classList.add('border-transparent', 'text-ink-600');
+      });
+      
+      // Show selected tab
+      document.getElementById('tab-' + tabName).classList.remove('hidden');
+      
+      // Mark button as active
+      this.classList.remove('border-transparent', 'text-ink-600');
+      this.classList.add('tab-active', 'border-solar-500', 'text-solar-600');
+    });
+  });
+});
+</script>
 {% if resultado %}
 {% localize off %}
 <script>
-// Consumption comparison chart
-const consumoActual = {{ cliente.consumo_mensual_kwh }};
-const generacionSolar = {{ resultado.generacion_mensual_kwh }};
+// Wait for Plotly.js to load before rendering charts
+function renderCharts() {
+    // Consumption comparison chart
+    const consumoActual = {{ cliente.consumo_mensual_kwh }};
+    const generacionSolar = {{ resultado.generacion_mensual_kwh }};
 
-Plotly.newPlot('chart-consumo', [{
-    x: ['Consumo actual', 'Generación solar', 'Consumo con solar'],
-    y: [consumoActual, generacionSolar, Math.max(0, consumoActual - generacionSolar)],
-    type: 'bar',
-    marker: {
-        color: ['#ef4444', '#22c55e', '#f59e0b'],
-        borderRadius: 4,
-    },
-    text: [consumoActual.toFixed(0) + ' kWh', generacionSolar.toFixed(0) + ' kWh', 
-           Math.max(0, consumoActual - generacionSolar).toFixed(0) + ' kWh'],
-    textposition: 'outside',
-}], {
-    margin: {t: 20, b: 40, l: 50, r: 20},
-    yaxis: {title: 'kWh/mes'},
-    paper_bgcolor: 'transparent',
-    plot_bgcolor: 'transparent',
-    font: {family: 'Inter, sans-serif', size: 12},
-}, {responsive: true, displayModeBar: false});
+    Plotly.newPlot('chart-consumo', [{
+        x: ['Consumo actual', 'Generación solar', 'Consumo con solar'],
+        y: [consumoActual, generacionSolar, Math.max(0, consumoActual - generacionSolar)],
+        type: 'bar',
+        marker: {
+            color: ['#ef4444', '#22c55e', '#f59e0b'],
+            borderRadius: 4,
+        },
+        text: [consumoActual.toFixed(0) + ' kWh', generacionSolar.toFixed(0) + ' kWh', 
+               Math.max(0, consumoActual - generacionSolar).toFixed(0) + ' kWh'],
+        textposition: 'outside',
+    }], {
+        margin: {t: 20, b: 40, l: 50, r: 20},
+        yaxis: {title: 'kWh/mes'},
+        paper_bgcolor: 'transparent',
+        plot_bgcolor: 'transparent',
+        font: {family: 'Inter, sans-serif', size: 12},
+    }, {responsive: true, displayModeBar: false});
 
-{% if proyeccion %}
-// ROI chart
-const proyeccionData = {{ proyeccion|safe }};
+    {% if proyeccion %}
+    // ROI chart
+    const proyeccionData = {{ proyeccion|safe }};
 
-Plotly.newPlot('chart-roi', [{
-    x: proyeccionData.anos,
-    y: proyeccionData.ahorro_acumulado,
-    type: 'scatter',
-    mode: 'lines+markers',
-    name: 'Ahorro acumulado',
-    line: {color: '#22c55e', width: 3},
-    fill: 'tozeroy',
-    fillcolor: 'rgba(34,197,94,0.1)',
-}, {
-    x: [0, 25],
-    y: [0, 0],
-    type: 'scatter',
-    mode: 'lines',
-    name: 'Punto de equilibrio',
-    line: {color: '#ef4444', width: 2, dash: 'dash'},
-}], {
-    margin: {t: 20, b: 40, l: 70, r: 20},
-    xaxis: {title: 'Años'},
-    yaxis: {title: 'COP'},
-    showlegend: true,
-    legend: {x: 0, y: 1},
-    paper_bgcolor: 'transparent',
-    plot_bgcolor: 'transparent',
-    font: {family: 'Inter, sans-serif', size: 12},
-}, {responsive: true, displayModeBar: false});
-{% endif %}
+    Plotly.newPlot('chart-roi', [{
+        x: proyeccionData.anos,
+        y: proyeccionData.ahorro_acumulado,
+        type: 'scatter',
+        mode: 'lines+markers',
+        name: 'Ahorro acumulado',
+        line: {color: '#22c55e', width: 3},
+        fill: 'tozeroy',
+        fillcolor: 'rgba(34,197,94,0.1)',
+    }, {
+        x: [0, 25],
+        y: [0, 0],
+        type: 'scatter',
+        mode: 'lines',
+        name: 'Punto de equilibrio',
+        line: {color: '#ef4444', width: 2, dash: 'dash'},
+    }], {
+        margin: {t: 20, b: 40, l: 70, r: 20},
+        xaxis: {title: 'Años'},
+        yaxis: {title: 'COP'},
+        showlegend: true,
+        legend: {x: 0, y: 1},
+        paper_bgcolor: 'transparent',
+        plot_bgcolor: 'transparent',
+        font: {family: 'Inter, sans-serif', size: 12},
+    }, {responsive: true, displayModeBar: false});
+    {% endif %}
 
-{% if pvgis_data.radiacion_mensual %}
-// PVGIS radiation chart
-const meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
-const radiacion = [{% for m in pvgis_data.radiacion_mensual %}{{ m.radiacion_kwh_m2 }}{% if not forloop.last %},{% endif %}{% endfor %}];
-const minRad = Math.min(...radiacion);
-const colors = radiacion.map(r => r === minRad ? '#ef4444' : '#f59e0b');
+    {% if pvgis_data.radiacion_mensual %}
+    // PVGIS radiation chart
+    const meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+    const radiacion = [{% for m in pvgis_data.radiacion_mensual %}{{ m.radiacion_kwh_m2 }}{% if not forloop.last %},{% endif %}{% endfor %}];
+    const minRad = Math.min(...radiacion);
+    const colors = radiacion.map(r => r === minRad ? '#ef4444' : '#f59e0b');
 
-Plotly.newPlot('chart-radiacion', [{
-    x: meses,
-    y: radiacion,
-    type: 'bar',
-    marker: {color: colors},
-    text: radiacion.map(r => r.toFixed(1)),
-    textposition: 'outside',
-}], {
-    margin: {t: 20, b: 40, l: 50, r: 20},
-    yaxis: {title: 'kWh/m²'},
-    paper_bgcolor: 'transparent',
-    plot_bgcolor: 'transparent',
-    font: {family: 'Inter, sans-serif', size: 12},
-}, {responsive: true, displayModeBar: false});
+    Plotly.newPlot('chart-radiacion', [{
+        x: meses,
+        y: radiacion,
+        type: 'bar',
+        marker: {color: colors},
+        text: radiacion.map(r => r.toFixed(1)),
+        textposition: 'outside',
+    }], {
+        margin: {t: 20, b: 40, l: 50, r: 20},
+        yaxis: {title: 'kWh/m²'},
+        paper_bgcolor: 'transparent',
+        plot_bgcolor: 'transparent',
+        font: {family: 'Inter, sans-serif', size: 12},
+    }, {responsive: true, displayModeBar: false});
 
-// HSP monthly chart
-const hsp = [{% for m in pvgis_data.radiacion_mensual %}{{ m.hsp }}{% if not forloop.last %},{% endif %}{% endfor %}];
-const hspPromedio = hsp.reduce((a, b) => a + b, 0) / hsp.length;
-const hspColors = hsp.map(h => h === Math.min(...hsp) ? '#ef4444' : h === Math.max(...hsp) ? '#22c55e' : '#3b82f6');
+    // HSP monthly chart
+    const hsp = [{% for m in pvgis_data.radiacion_mensual %}{{ m.hsp }}{% if not forloop.last %},{% endif %}{% endfor %}];
+    const hspPromedio = hsp.reduce((a, b) => a + b, 0) / hsp.length;
+    const hspColors = hsp.map(h => h === Math.min(...hsp) ? '#ef4444' : h === Math.max(...hsp) ? '#22c55e' : '#3b82f6');
 
-Plotly.newPlot('chart-hsp', [{
-    x: meses,
-    y: hsp,
-    type: 'bar',
-    marker: {color: hspColors},
-    text: hsp.map(h => h.toFixed(2)),
-    textposition: 'outside',
-    name: 'HSP',
-}, {
-    x: meses,
-    y: Array(12).fill(hspPromedio),
-    type: 'scatter',
-    mode: 'lines',
-    name: 'Promedio (' + hspPromedio.toFixed(2) + ' h)',
-    line: {color: '#f59e0b', width: 2, dash: 'dash'},
-}], {
-    margin: {t: 20, b: 40, l: 50, r: 20},
-    yaxis: {title: 'Horas/día'},
-    showlegend: true,
-    legend: {x: 0, y: 1},
-    paper_bgcolor: 'transparent',
-    plot_bgcolor: 'transparent',
-    font: {family: 'Inter, sans-serif', size: 12},
-}, {responsive: true, displayModeBar: false});
-{% endif %}
+    Plotly.newPlot('chart-hsp', [{
+        x: meses,
+        y: hsp,
+        type: 'bar',
+        marker: {color: hspColors},
+        text: hsp.map(h => h.toFixed(2)),
+        textposition: 'outside',
+        name: 'HSP',
+    }, {
+        x: meses,
+        y: Array(12).fill(hspPromedio),
+        type: 'scatter',
+        mode: 'lines',
+        name: 'Promedio (' + hspPromedio.toFixed(2) + ' h)',
+        line: {color: '#f59e0b', width: 2, dash: 'dash'},
+    }], {
+        margin: {t: 20, b: 40, l: 50, r: 20},
+        yaxis: {title: 'Horas/día'},
+        showlegend: true,
+        legend: {x: 0, y: 1},
+        paper_bgcolor: 'transparent',
+        plot_bgcolor: 'transparent',
+        font: {family: 'Inter, sans-serif', size: 12},
+    }, {responsive: true, displayModeBar: false});
+    {% endif %}
+}
+
+// Wait for Plotly to be available
+if (typeof Plotly !== 'undefined') {
+    renderCharts();
+} else {
+    document.addEventListener('DOMContentLoaded', function() {
+        // Double-check Plotly is available
+        if (typeof Plotly !== 'undefined') {
+            renderCharts();
+        } else {
+            // Wait for Plotly to load if still not available
+            const checkPlotly = setInterval(() => {
+                if (typeof Plotly !== 'undefined') {
+                    renderCharts();
+                    clearInterval(checkPlotly);
+                }
+            }, 50);
+        }
+    });
+}
+
+// Equipment Selection Management
+document.addEventListener('DOMContentLoaded', function() {
+    const proyectoId = {{ proyecto.pk }};
+    const addBtn = document.getElementById('add-equipment-btn');
+    const equipmentQty = document.getElementById('equipment-qty');
+    const equipmentSelects = document.querySelectorAll('.equipment-select');
+    const totalCostEl = document.getElementById('total-cost');
+
+    // Calculate and display total cost
+    function updateTotalCost() {
+        let totalCost = 0;
+        const equipmentItems = document.querySelectorAll('.equipment-item');
+        equipmentItems.forEach(item => {
+            const priceText = item.querySelector('p.text-solar-600');
+            if (priceText) {
+                const price = parseFloat(priceText.textContent.replace('$', '').replace(/,/g, '')) || 0;
+                const qtySpan = item.querySelector('.qty-display');
+                const qty = parseInt(qtySpan.textContent) || 1;
+                totalCost += price * qty;
+            }
+        });
+        if (totalCostEl) {
+            totalCostEl.textContent = '$' + totalCost.toLocaleString('es-CO', {maximumFractionDigits: 0});
+        }
+    }
+
+    // Update total on page load
+    updateTotalCost();
+
+    // Add equipment
+    addBtn.addEventListener('click', function() {
+        let selectedEquipoId = null;
+        let selectedCategoria = null;
+
+        // Find which select has a value
+        equipmentSelects.forEach(select => {
+            if (select.value) {
+                selectedEquipoId = select.value;
+                selectedCategoria = select.dataset.category;
+            }
+        });
+
+        if (!selectedEquipoId) {
+            alert('Por favor, selecciona un equipo');
+            return;
+        }
+
+        const qty = parseInt(equipmentQty.value) || 1;
+        if (qty < 1) {
+            alert('La cantidad debe ser mayor a 0');
+            return;
+        }
+
+        // Map category to tipo_equipo
+        const tipoEquipoMap = {
+            'Panel Solar': 'panel',
+            'Inversor': 'inversor',
+            'Batería': 'bateria',
+            'Regulador de carga': 'regulador',
+            'Estructura de montaje': 'estructura',
+            'Cableado': 'cable',
+            'Protección eléctrica': 'proteccion',
+            'Medidor bidireccional': 'medidor',
+            'Accesorio': 'accesorio',
+            'Otro': 'otro'
+        };
+        
+        const tipoEquipo = tipoEquipoMap[selectedCategoria] || 'otro';
+
+        // Send AJAX request to add equipment
+        fetch(`/api/proyectos/${proyectoId}/equipment/select/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken'),
+            },
+            body: JSON.stringify({
+                equipo_id: selectedEquipoId,
+                cantidad: qty,
+                tipo_equipo: tipoEquipo
+            })
+        })
+        .then(response => {
+            if (!response.ok) {
+                return response.json().then(data => {
+                    throw new Error(data.error || 'Error al agregar equipo');
+                });
+            }
+            return response.json();
+        })
+        .then(data => {
+            // Reset selects
+            equipmentSelects.forEach(s => s.value = '');
+            equipmentQty.value = '1';
+            
+            // Reload the selected equipment list and recalculate
+            location.reload();
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error al agregar el equipo: ' + error.message);
+        });
+    });
+
+    // Handle quantity changes and removal
+    document.addEventListener('click', function(e) {
+        if (e.target.classList.contains('qty-plus')) {
+            const selectedId = e.target.dataset.selectedId;
+            updateEquipmentQty(selectedId, 1);
+        } else if (e.target.classList.contains('qty-minus')) {
+            const selectedId = e.target.dataset.selectedId;
+            updateEquipmentQty(selectedId, -1);
+        } else if (e.target.classList.contains('remove-equipment') || e.target.closest('.remove-equipment')) {
+            const btn = e.target.classList.contains('remove-equipment') ? e.target : e.target.closest('.remove-equipment');
+            const selectedId = btn.dataset.selectedId;
+            removeEquipment(selectedId);
+        }
+    });
+
+    function updateEquipmentQty(selectedId, change) {
+        fetch(`/api/proyectos/${proyectoId}/equipment/${selectedId}/update/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken'),
+            },
+            body: JSON.stringify({
+                qty_change: change
+            })
+        })
+        .then(response => {
+            if (!response.ok) {
+                return response.json().then(data => {
+                    throw new Error(data.error || 'Error al actualizar cantidad');
+                });
+            }
+            return response.json();
+        })
+        .then(data => {
+            // Recalculate dimensioning
+            recalculateDimensioning();
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error al actualizar cantidad: ' + error.message);
+        });
+    }
+
+    function removeEquipment(selectedId) {
+        if (!confirm('¿Estás seguro de que quieres eliminar este equipo?')) {
+            return;
+        }
+
+        fetch(`/api/proyectos/${proyectoId}/equipment/${selectedId}/remove/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken'),
+            }
+        })
+        .then(response => {
+            if (!response.ok) {
+                return response.json().then(data => {
+                    throw new Error(data.error || 'Error al eliminar equipo');
+                });
+            }
+            return response.json();
+        })
+        .then(data => {
+            // Recalculate dimensioning
+            recalculateDimensioning();
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error al eliminar el equipo: ' + error.message);
+        });
+    }
+
+    // Recalculate dimensioning based on selected equipment
+    function recalculateDimensioning() {
+        fetch(`/api/proyectos/${proyectoId}/recalculate/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken'),
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Update TAB 1 values
+                updateTab1Values(data.resultado);
+                
+                // Show alerts
+                displayEquipmentAlerts(data.alertas);
+                
+                // Reload equipment list
+                location.reload();
+            } else {
+                console.error('Error:', data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error recalculating:', error);
+        });
+    }
+
+    // Update TAB 1 with new values
+    function updateTab1Values(resultado) {
+        // Update summary cards
+        const potenciaEl = document.getElementById('value-potencia-pico');
+        if (potenciaEl) potenciaEl.textContent = (resultado.potencia_pico_kwp || 0).toFixed(2);
+        
+        const panelsEl = document.getElementById('value-numero-paneles');
+        if (panelsEl) panelsEl.textContent = resultado.numero_paneles || 0;
+        
+        const generacionEl = document.getElementById('value-generacion-mensual');
+        if (generacionEl) generacionEl.textContent = Math.round(resultado.generacion_mensual_kwh || 0);
+        
+        const coberturaEl = document.getElementById('value-cobertura');
+        if (coberturaEl) coberturaEl.textContent = Math.round(resultado.porcentaje_cobertura || 0);
+        
+        // Update detail values
+        const detailGen = document.getElementById('detail-generacion-mensual');
+        if (detailGen) detailGen.textContent = Math.round(resultado.generacion_mensual_kwh || 0) + ' kWh';
+        
+        const detailArea = document.getElementById('detail-area-requerida');
+        if (detailArea && resultado.area_requerida_m2) {
+            detailArea.textContent = resultado.area_requerida_m2 + ' m²';
+        }
+        
+        const detailInversor = document.getElementById('detail-inversor-potencia');
+        if (detailInversor && resultado.inversor_potencia_kw) {
+            detailInversor.textContent = resultado.inversor_potencia_kw + ' kW';
+        }
+        
+        const detailCO2 = document.getElementById('detail-co2-evitado');
+        if (detailCO2 && resultado.co2_evitado_ton_ano) {
+            detailCO2.textContent = resultado.co2_evitado_ton_ano + ' ton';
+        }
+        
+        const detailCosto = document.getElementById('detail-costo-estimado');
+        if (detailCosto && resultado.costo_estimado_sistema) {
+            detailCosto.textContent = '$' + Math.round(resultado.costo_estimado_sistema).toLocaleString('es-CO');
+        }
+        
+        const detailAhorroMensual = document.getElementById('detail-ahorro-mensual');
+        if (detailAhorroMensual && resultado.ahorro_mensual_cop) {
+            detailAhorroMensual.textContent = '$' + Math.round(resultado.ahorro_mensual_cop).toLocaleString('es-CO');
+        }
+        
+        const detailAhorroAnual = document.getElementById('detail-ahorro-anual');
+        if (detailAhorroAnual && resultado.ahorro_anual_cop) {
+            detailAhorroAnual.textContent = '$' + Math.round(resultado.ahorro_anual_cop).toLocaleString('es-CO');
+        }
+        
+        const detailROI = document.getElementById('detail-roi-anos');
+        if (detailROI && resultado.roi_anos) {
+            detailROI.textContent = (resultado.roi_anos || 0).toFixed(1) + ' años';
+        }
+        
+        const detailAhorroAccum = document.getElementById('detail-ahorro-acumulado');
+        if (detailAhorroAccum && resultado.ahorro_acumulado_25_anos) {
+            detailAhorroAccum.textContent = '$' + Math.round(resultado.ahorro_acumulado_25_anos).toLocaleString('es-CO');
+        }
+    }
+
+    // Display equipment alerts
+    function displayEquipmentAlerts(alertas) {
+        const container = document.getElementById('equipment-alerts-container');
+        if (!container) return;
+        
+        container.innerHTML = '';
+        
+        if (!alertas || alertas.length === 0) {
+            return;
+        }
+        
+        alertas.forEach(alerta => {
+            const bgColor = alerta.tipo === 'critico' ? 'bg-red-50 border-red-200' : 'bg-yellow-50 border-yellow-200';
+            const textColor = alerta.tipo === 'critico' ? 'text-red-800' : 'text-yellow-800';
+            const icon = alerta.tipo === 'critico' ? 'fas fa-exclamation-circle' : 'fas fa-exclamation-triangle';
+            
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `mb-4 p-4 border rounded-lg text-sm ${bgColor} ${textColor}`;
+            alertDiv.innerHTML = `<i class="${icon} mr-2"></i> ${alerta.mensaje}`;
+            container.appendChild(alertDiv);
+        });
+    }
+
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+});
 </script>
 {% endlocalize %}
 {% endif %}

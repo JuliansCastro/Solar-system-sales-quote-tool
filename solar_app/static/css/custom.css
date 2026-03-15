@@ -1,12 +1,59 @@
-/* Solar Quote Tool – Custom CSS Overrides */
-/* Most styling is handled by Tailwind CDN in base.html */
+/* ═══════════════════════════════════════════════════════════
+   Solar Quote Tool — Design System CSS
+   
+   Design direction: Warm professional tool for solar energy
+   consultants in Colombia. Surfaces use warm stone tones,
+   amber accents trace back to sunlight. Borders-only depth
+   strategy. Inter typeface for warmth + readability.
+   
+   Spacing base: 4px (Tailwind default)
+   Depth strategy: Borders + subtle shadow-xs
+   Border radius: 0.75rem cards, 0.5rem controls
+   ═══════════════════════════════════════════════════════════ */
 
-/* Print styles for better PDF rendering */
+/* ── Smooth scroll for anchors ── */
+html { scroll-behavior: smooth; }
+
+/* ── Focus visible for keyboard users only ── */
+*:focus:not(:focus-visible) { outline: none; }
+*:focus-visible {
+    outline: 2px solid #eda921;
+    outline-offset: 2px;
+    border-radius: 4px;
+}
+
+/* ── Scrollbar styling (warm tone) ── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+    background: #c4baa9; border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover { background: #a99d8a; }
+
+/* ── Table row transitions ── */
+tbody tr { transition: background-color 0.1s ease-out; }
+
+/* ── Print styles ── */
 @media print {
-    .no-print {
-        display: none !important;
-    }
-    body {
-        font-size: 12pt;
-    }
+    .no-print, aside, header, [role="alert"] { display: none !important; }
+    main { margin-left: 0 !important; }
+    body { font-size: 11pt; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .card { box-shadow: none; border: 1px solid #ddd; break-inside: avoid; }
+}
+
+/* ── Plotly chart container breathing room ── */
+.js-plotly-plot { border-radius: 0.5rem; }
+
+/* ── Animation for flash messages ── */
+@keyframes slide-in-down {
+    from { opacity: 0; transform: translateY(-8px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+[role="alert"] > div {
+    animation: slide-in-down 0.2s ease-out;
+}
+
+/* ── Mobile sidebar overlay transition ── */
+#sidebar-backdrop {
+    transition: opacity 0.2s ease-out;
 }

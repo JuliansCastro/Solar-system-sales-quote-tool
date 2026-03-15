@@ -1,14 +1,15 @@
 {% extends 'base.html' %}
+{% load humanize %}
 {% block title %}Inventario - SolarQuote{% endblock %}
 
 {% block content %}
-<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
+<div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-6">
     <div>
-        <h1 class="text-2xl font-bold text-gray-900">Inventario de equipos</h1>
-        <p class="text-sm text-gray-500 mt-1">{{ total_equipos }} equipos registrados</p>
+        <h1 class="text-2xl font-extrabold text-ink-950 tracking-tight">Inventario de equipos</h1>
+        <p class="text-sm text-ink-500 mt-1">{{ total_equipos }} equipos registrados</p>
     </div>
-    <a href="{% url 'equipo_create' %}" class="mt-4 sm:mt-0 btn-primary">
-        <i class="fas fa-plus mr-2"></i> Nuevo Equipo
+    <a href="{% url 'equipo_create' %}" class="btn-primary">
+        <i class="fas fa-plus text-xs"></i> Nuevo Equipo
     </a>
 </div>
 
@@ -16,35 +17,35 @@
 <div class="card mb-6 p-4">
     <form method="get" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3 items-end">
         <div>
-            <label class="block text-xs font-medium text-gray-500 mb-1">Buscar</label>
+            <label class="form-label text-xs">Buscar</label>
             {{ filter_form.buscar }}
         </div>
         <div>
-            <label class="block text-xs font-medium text-gray-500 mb-1">Categoría</label>
+            <label class="form-label text-xs">Categoría</label>
             {{ filter_form.categoria }}
         </div>
         <div>
-            <label class="block text-xs font-medium text-gray-500 mb-1">Fabricante</label>
+            <label class="form-label text-xs">Fabricante</label>
             {{ filter_form.fabricante }}
         </div>
         <div>
-            <label class="block text-xs font-medium text-gray-500 mb-1">Sistema</label>
+            <label class="form-label text-xs">Sistema</label>
             {{ filter_form.sistema }}
         </div>
         <div>
-            <label class="block text-xs font-medium text-gray-500 mb-1">Potencia mín (W)</label>
+            <label class="form-label text-xs">Potencia mín (W)</label>
             {{ filter_form.potencia_min }}
         </div>
         <div>
-            <label class="block text-xs font-medium text-gray-500 mb-1">Potencia máx (W)</label>
+            <label class="form-label text-xs">Potencia máx (W)</label>
             {{ filter_form.potencia_max }}
         </div>
         <div class="flex items-end gap-2">
-            <label class="flex items-center gap-2 text-sm text-gray-600 pb-2">
+            <label class="flex items-center gap-2 text-sm text-ink-600 pb-2.5 cursor-pointer">
                 {{ filter_form.en_stock }} En stock
             </label>
             <button type="submit" class="btn-primary whitespace-nowrap">
-                <i class="fas fa-filter mr-1"></i> Filtrar
+                <i class="fas fa-filter text-xs"></i> Filtrar
             </button>
         </div>
     </form>
@@ -53,67 +54,71 @@
 <!-- Table -->
 <div class="card overflow-hidden">
     <div class="overflow-x-auto">
-        <table class="min-w-full divide-y divide-gray-200">
-            <thead class="bg-gray-50">
+        <table class="min-w-full" role="table">
+            <thead class="surface-inset border-b border-canvas-200/60">
                 <tr>
-                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Equipo</th>
-                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Categoría</th>
-                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Potencia</th>
-                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Precio venta</th>
-                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Stock</th>
-                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Sistema</th>
-                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Acciones</th>
+                    <th class="table-header">Equipo</th>
+                    <th class="table-header hidden sm:table-cell">Categoría</th>
+                    <th class="table-header text-center hidden md:table-cell">Potencia</th>
+                    <th class="table-header text-right hidden md:table-cell">Precio venta</th>
+                    <th class="table-header text-center">Stock</th>
+                    <th class="table-header text-center hidden lg:table-cell">Sistema</th>
+                    <th class="table-header text-right">Acciones</th>
                 </tr>
             </thead>
-            <tbody class="bg-white divide-y divide-gray-200">
+            <tbody class="divide-y divide-canvas-100">
                 {% for equipo in equipos %}
-                <tr class="hover:bg-gray-50 transition-colors">
-                    <td class="px-4 py-3">
-                        <a href="{% url 'equipo_detail' equipo.pk %}" class="text-sm font-medium text-gray-900 hover:text-solar-600">
+                <tr class="hover:bg-canvas-50 transition-base">
+                    <td class="table-cell">
+                        <a href="{% url 'equipo_detail' equipo.pk %}" class="text-sm font-semibold text-ink-900 hover:text-solar-600 transition-base">
                             {{ equipo.fabricante }} {{ equipo.modelo }}
                         </a>
-                        <p class="text-xs text-gray-400">SKU: {{ equipo.sku }}</p>
+                        <p class="text-xs text-ink-400 font-mono mt-0.5">{{ equipo.sku }}</p>
                     </td>
-                    <td class="px-4 py-3">
-                        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium
-                            {% if equipo.categoria == 'panel' %}bg-blue-100 text-blue-700
-                            {% elif equipo.categoria == 'inversor' %}bg-purple-100 text-purple-700
-                            {% elif equipo.categoria == 'bateria' %}bg-orange-100 text-orange-700
-                            {% elif equipo.categoria == 'regulador' %}bg-green-100 text-green-700
-                            {% else %}bg-gray-100 text-gray-600{% endif %}">
+                    <td class="table-cell hidden sm:table-cell">
+                        <span class="badge
+                            {% if equipo.categoria == 'panel' %}badge-blue
+                            {% elif equipo.categoria == 'inversor' %}badge-purple
+                            {% elif equipo.categoria == 'bateria' %}badge-orange
+                            {% elif equipo.categoria == 'regulador' %}badge-green
+                            {% else %}badge-gray{% endif %}">
                             {{ equipo.get_categoria_display }}
                         </span>
                     </td>
-                    <td class="px-4 py-3 text-center text-sm">{{ equipo.potencia_nominal_w|floatformat:0 }} W</td>
-                    <td class="px-4 py-3 text-right text-sm font-medium">${{ equipo.precio_venta|floatformat:0 }}</td>
-                    <td class="px-4 py-3 text-center">
-                        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-bold
-                            {% if equipo.stock == 0 %}bg-red-100 text-red-700
-                            {% elif equipo.stock <= 3 %}bg-yellow-100 text-yellow-700
-                            {% else %}bg-green-100 text-green-700{% endif %}">
+                    <td class="table-cell text-center text-sm font-mono hidden md:table-cell">{{ equipo.potencia_nominal_w|floatformat:0 }} W</td>
+                    <td class="table-cell text-right font-mono font-semibold text-sm hidden md:table-cell">${{ equipo.precio_venta|floatformat:0|intcomma }}</td>
+                    <td class="table-cell text-center">
+                        <span class="badge
+                            {% if equipo.stock == 0 %}badge-red
+                            {% elif equipo.stock <= 3 %}badge-amber
+                            {% else %}badge-green{% endif %}">
                             {{ equipo.stock }}
                         </span>
                     </td>
-                    <td class="px-4 py-3 text-center text-xs text-gray-500">{{ equipo.get_sistema_compatible_display }}</td>
-                    <td class="px-4 py-3 text-right space-x-2">
-                        <a href="{% url 'equipo_clonar' equipo.pk %}" class="text-gray-400 hover:text-solar-600" title="Clonar"
-                           onclick="return confirm('¿Deseas clonar este equipo?')">
-                            <i class="fas fa-copy"></i>
-                        </a>
-                        <a href="{% url 'equipo_update' equipo.pk %}" class="text-solar-600 hover:text-solar-800" title="Editar">
-                            <i class="fas fa-edit"></i>
-                        </a>
-                        <a href="{% url 'equipo_delete' equipo.pk %}" class="text-red-500 hover:text-red-700" title="Eliminar">
-                            <i class="fas fa-trash"></i>
-                        </a>
+                    <td class="table-cell text-center text-xs text-ink-500 hidden lg:table-cell">{{ equipo.get_sistema_compatible_display }}</td>
+                    <td class="table-cell text-right">
+                        <div class="flex items-center justify-end gap-0.5">
+                            <a href="{% url 'equipo_clonar' equipo.pk %}" class="btn-ghost p-2 text-ink-400 hover:text-solar-600" title="Clonar"
+                               onclick="return confirm('¿Deseas clonar este equipo?')" aria-label="Clonar {{ equipo.nombre }}">
+                                <i class="fas fa-copy text-sm"></i>
+                            </a>
+                            <a href="{% url 'equipo_update' equipo.pk %}" class="btn-ghost p-2 text-ink-400 hover:text-solar-600" title="Editar" aria-label="Editar {{ equipo.nombre }}">
+                                <i class="fas fa-edit text-sm"></i>
+                            </a>
+                            <a href="{% url 'equipo_delete' equipo.pk %}" class="btn-ghost p-2 text-ink-400 hover:text-red-500" title="Eliminar" aria-label="Eliminar {{ equipo.nombre }}">
+                                <i class="fas fa-trash text-sm"></i>
+                            </a>
+                        </div>
                     </td>
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="7" class="px-6 py-12 text-center text-gray-400">
-                        <i class="fas fa-boxes-stacked text-4xl mb-3 block"></i>
-                        <p>No hay equipos en el inventario.</p>
-                        <a href="{% url 'equipo_create' %}" class="text-solar-600 hover:underline text-sm mt-2 inline-block">
+                    <td colspan="7" class="px-4 py-14 text-center">
+                        <div class="w-14 h-14 bg-canvas-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                            <i class="fas fa-boxes-stacked text-ink-400 text-xl"></i>
+                        </div>
+                        <p class="text-sm text-ink-500">No hay equipos en el inventario.</p>
+                        <a href="{% url 'equipo_create' %}" class="text-xs font-semibold text-solar-600 hover:text-solar-700 mt-2 inline-block">
                             Agregar primer equipo →
                         </a>
                     </td>
@@ -125,14 +130,14 @@
 </div>
 
 {% if is_paginated %}
-<div class="mt-6 flex items-center justify-center gap-2">
+<nav class="mt-6 flex items-center justify-center gap-2" aria-label="Paginación">
     {% if page_obj.has_previous %}
-    <a href="?page={{ page_obj.previous_page_number }}" class="btn-secondary text-xs">← Anterior</a>
+    <a href="?page={{ page_obj.previous_page_number }}" class="btn-ghost text-xs">← Anterior</a>
     {% endif %}
-    <span class="text-sm text-gray-500">Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
+    <span class="text-sm text-ink-500 font-medium">Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
     {% if page_obj.has_next %}
-    <a href="?page={{ page_obj.next_page_number }}" class="btn-secondary text-xs">Siguiente →</a>
+    <a href="?page={{ page_obj.next_page_number }}" class="btn-ghost text-xs">Siguiente →</a>
     {% endif %}
-</div>
+</nav>
 {% endif %}
 {% endblock %}

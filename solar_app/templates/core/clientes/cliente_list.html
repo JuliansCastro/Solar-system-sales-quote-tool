@@ -1,68 +1,83 @@
 {% extends 'base.html' %}
+{% load humanize %}
 {% block title %}Clientes - SolarQuote{% endblock %}
 
 {% block content %}
-<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
+<div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-6">
     <div>
-        <h1 class="text-2xl font-bold text-gray-900">Clientes</h1>
-        <p class="text-sm text-gray-500 mt-1">Gestiona tu base de clientes</p>
+        <h1 class="text-2xl font-extrabold text-ink-950 tracking-tight">Clientes</h1>
+        <p class="text-sm text-ink-500 mt-1">Gestiona tu base de clientes</p>
     </div>
-    <a href="{% url 'cliente_create' %}" class="mt-4 sm:mt-0 btn-primary">
-        <i class="fas fa-plus mr-2"></i> Nuevo Cliente
+    <a href="{% url 'cliente_create' %}" class="btn-primary">
+        <i class="fas fa-plus text-xs"></i> Nuevo Cliente
     </a>
 </div>
 
 <!-- Search -->
 <div class="card mb-6">
-    <form method="get" class="p-4 flex gap-4">
-        <input type="text" name="q" value="{{ request.GET.q }}" placeholder="Buscar por nombre, email, ciudad..."
-               class="form-input flex-1">
-        <button type="submit" class="btn-primary"><i class="fas fa-search mr-1"></i> Buscar</button>
+    <form method="get" class="p-4 flex flex-col sm:flex-row gap-3">
+        <div class="flex-1">
+            <label for="search-clients" class="sr-only">Buscar clientes</label>
+            <input id="search-clients" type="text" name="q" value="{{ request.GET.q }}" placeholder="Buscar por nombre, email, municipio..."
+                   class="form-input" aria-label="Buscar clientes">
+        </div>
+        <button type="submit" class="btn-primary"><i class="fas fa-search text-xs"></i> Buscar</button>
     </form>
 </div>
 
 <!-- Table -->
 <div class="card overflow-hidden">
     <div class="overflow-x-auto">
-        <table class="min-w-full divide-y divide-gray-200">
-            <thead class="bg-gray-50">
+        <table class="min-w-full" role="table">
+            <thead class="surface-inset border-b border-canvas-200/60">
                 <tr>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nombre</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ciudad</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Consumo</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tarifa</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Estrato</th>
-                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Acciones</th>
+                    <th class="table-header">Nombre</th>
+                    <th class="table-header hidden sm:table-cell">Municipio</th>
+                    <th class="table-header hidden md:table-cell">Consumo</th>
+                    <th class="table-header hidden lg:table-cell">Tarifa</th>
+                    <th class="table-header hidden lg:table-cell">Estrato</th>
+                    <th class="table-header text-right">Acciones</th>
                 </tr>
             </thead>
-            <tbody class="bg-white divide-y divide-gray-200">
+            <tbody class="divide-y divide-canvas-100">
                 {% for cliente in clientes %}
-                <tr class="hover:bg-gray-50 transition-colors">
-                    <td class="px-6 py-4">
-                        <a href="{% url 'cliente_detail' cliente.pk %}" class="text-sm font-medium text-gray-900 hover:text-solar-600">
+                <tr class="hover:bg-canvas-50 transition-base">
+                    <td class="table-cell">
+                        <a href="{% url 'cliente_detail' cliente.pk %}" class="text-sm font-semibold text-ink-900 hover:text-solar-600 transition-base">
                             {{ cliente.nombre }}
                         </a>
-                        <p class="text-xs text-gray-500">{{ cliente.email }}</p>
+                        <p class="text-xs text-ink-500 mt-0.5">{{ cliente.email }}</p>
+                        <p class="text-xs text-ink-400 sm:hidden mt-0.5">{{ cliente.ciudad }}</p>
                     </td>
-                    <td class="px-6 py-4 text-sm text-gray-600">{{ cliente.ciudad }}</td>
-                    <td class="px-6 py-4 text-sm text-gray-600">{{ cliente.consumo_mensual_kwh }} kWh/mes</td>
-                    <td class="px-6 py-4 text-sm text-gray-600">${{ cliente.tarifa_electrica|floatformat:0 }}/kWh</td>
-                    <td class="px-6 py-4 text-sm text-gray-600">{{ cliente.estrato }}</td>
-                    <td class="px-6 py-4 text-right space-x-2">
-                        <a href="{% url 'cliente_update' cliente.pk %}" class="text-solar-600 hover:text-solar-800" title="Editar">
-                            <i class="fas fa-edit"></i>
-                        </a>
-                        <a href="{% url 'cliente_delete' cliente.pk %}" class="text-red-500 hover:text-red-700" title="Eliminar">
-                            <i class="fas fa-trash"></i>
-                        </a>
+                    <td class="table-cell text-sm text-ink-600 hidden sm:table-cell">{{ cliente.ciudad }}</td>
+                    <td class="table-cell hidden md:table-cell">
+                        <span class="text-sm font-semibold text-ink-800 font-mono">{{ cliente.consumo_mensual_kwh }}</span>
+                        <span class="text-xs text-ink-500">kWh/mes</span>
+                    </td>
+                    <td class="table-cell hidden lg:table-cell">
+                        <span class="text-sm font-mono text-ink-800">${{ cliente.tarifa_electrica|floatformat:0|intcomma }}</span>
+                        <span class="text-xs text-ink-500">/kWh</span>
+                    </td>
+                    <td class="table-cell text-sm text-ink-600 hidden lg:table-cell">{{ cliente.estrato }}</td>
+                    <td class="table-cell text-right">
+                        <div class="flex items-center justify-end gap-1">
+                            <a href="{% url 'cliente_update' cliente.pk %}" class="btn-ghost p-2 text-ink-400 hover:text-solar-600" title="Editar" aria-label="Editar {{ cliente.nombre }}">
+                                <i class="fas fa-edit text-sm"></i>
+                            </a>
+                            <a href="{% url 'cliente_delete' cliente.pk %}" class="btn-ghost p-2 text-ink-400 hover:text-red-500" title="Eliminar" aria-label="Eliminar {{ cliente.nombre }}">
+                                <i class="fas fa-trash text-sm"></i>
+                            </a>
+                        </div>
                     </td>
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="6" class="px-6 py-12 text-center text-gray-400">
-                        <i class="fas fa-users text-4xl mb-3 block"></i>
-                        <p>No hay clientes registrados.</p>
-                        <a href="{% url 'cliente_create' %}" class="text-solar-600 hover:underline text-sm mt-2 inline-block">
+                    <td colspan="6" class="px-4 py-14 text-center">
+                        <div class="w-14 h-14 bg-canvas-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                            <i class="fas fa-users text-ink-400 text-xl"></i>
+                        </div>
+                        <p class="text-sm text-ink-500">No hay clientes registrados.</p>
+                        <a href="{% url 'cliente_create' %}" class="text-xs font-semibold text-solar-600 hover:text-solar-700 mt-2 inline-block">
                             Crear primer cliente →
                         </a>
                     </td>
@@ -75,14 +90,14 @@
 
 <!-- Pagination -->
 {% if is_paginated %}
-<div class="mt-6 flex items-center justify-center gap-2">
+<nav class="mt-6 flex items-center justify-center gap-2" aria-label="Paginación">
     {% if page_obj.has_previous %}
-    <a href="?page={{ page_obj.previous_page_number }}&q={{ request.GET.q }}" class="btn-secondary text-xs">← Anterior</a>
+    <a href="?page={{ page_obj.previous_page_number }}&q={{ request.GET.q }}" class="btn-ghost text-xs">← Anterior</a>
     {% endif %}
-    <span class="text-sm text-gray-500">Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
+    <span class="text-sm text-ink-500 font-medium">Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
     {% if page_obj.has_next %}
-    <a href="?page={{ page_obj.next_page_number }}&q={{ request.GET.q }}" class="btn-secondary text-xs">Siguiente →</a>
+    <a href="?page={{ page_obj.next_page_number }}&q={{ request.GET.q }}" class="btn-ghost text-xs">Siguiente →</a>
     {% endif %}
-</div>
+</nav>
 {% endif %}
 {% endblock %}

@@ -1,7 +1,11 @@
 """Admin configuration for Solar Quote App."""
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
-from .models import User, Cliente, Proyecto, Equipo, Cotizacion, CotizacionItem, Carga, CargaTipo, CompanySettings
+from .models import (
+    User, Cliente, Proyecto, Equipo, Cotizacion, CotizacionItem, Carga, CargaTipo, 
+    CompanySettings, Departamento, Municipio, SelectedEquipo, EquipoCompatibilidad, 
+    ChartExplanation
+)
 
 
 @admin.register(User)
@@ -18,9 +22,9 @@ class UserAdmin(BaseUserAdmin):
 
 @admin.register(Cliente)
 class ClienteAdmin(admin.ModelAdmin):
-    list_display = ('nombre', 'email', 'ciudad', 'consumo_mensual_kwh', 'tarifa_electrica', 'estrato')
-    list_filter = ('estrato', 'ciudad', 'departamento')
-    search_fields = ('nombre', 'email', 'telefono', 'ciudad')
+    list_display = ('nombre', 'email', 'municipio', 'consumo_mensual_kwh', 'tarifa_electrica', 'estrato')
+    list_filter = ('estrato', 'municipio__departamento', 'departamento')
+    search_fields = ('nombre', 'email', 'telefono', 'municipio__nombre')
 
 
 @admin.register(Proyecto)
@@ -78,5 +82,107 @@ class CompanySettingsAdmin(admin.ModelAdmin):
             return False
         return super().has_add_permission(request)
 
+
+@admin.register(Departamento)
+class DepartamentoAdmin(admin.ModelAdmin):
+    list_display = ('id_departamento', 'nombre')
+    search_fields = ('nombre',)
+    ordering = ('nombre',)
+
+
+@admin.register(Municipio)
+class MunicipioAdmin(admin.ModelAdmin):
+    list_display = ('id_municipio', 'nombre', 'departamento')
+    list_filter = ('departamento', 'activo')
+    search_fields = ('nombre', 'departamento__nombre')
+    ordering = ('departamento', 'nombre')
+
     def has_delete_permission(self, request, obj=None):
         return False
+
+
+# ──────────────────────────────────────────────
+# EQUIPMENT SELECTION ADMIN
+# ──────────────────────────────────────────────
+
+@admin.register(SelectedEquipo)
+class SelectedEquipoAdmin(admin.ModelAdmin):
+    list_display = ('proyecto', 'equipo', 'tipo_equipo', 'cantidad', 'activo', 'fecha_seleccion')
+    list_filter = ('tipo_equipo', 'activo', 'proyecto__tipo_sistema', 'fecha_seleccion')
+    search_fields = ('proyecto__nombre', 'proyecto__codigo', 'equipo__nombre', 'equipo__fabricante')
+    readonly_fields = ('perdidas_estimadas_porcentaje', 'generacion_afectada_kwh', 'fecha_seleccion', 'fecha_actualizacion')
+    
+    fieldsets = (
+        ('Información General', {
+            'fields': ('proyecto', 'equipo', 'tipo_equipo', 'cantidad', 'activo')
+        }),
+        ('Notas', {
+            'fields': ('notas',),
+            'classes': ('wide',),
+        }),
+        ('Cálculos (Solo Lectura)', {
+            'fields': ('perdidas_estimadas_porcentaje', 'generacion_afectada_kwh'),
+            'classes': ('collapse',),
+        }),
+        ('Metadata', {
+            'fields': ('fecha_seleccion', 'fecha_actualizacion'),
+            'classes': ('collapse',),
+        }),
+    )
+    
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        return qs.select_related('proyecto', 'equipo')
+
+
+@admin.register(EquipoCompatibilidad)
+class EquipoCompatibilidadAdmin(admin.ModelAdmin):
+    list_display = ('equipo_base', 'equipo_compatible', 'tipo_validacion', 'es_critico', 'activo')
+    list_filter = ('tipo_validacion', 'es_critico', 'activo')
+    search_fields = ('equipo_base__nombre', 'equipo_base__fabricante', 'equipo_compatible__nombre', 'equipo_compatible__fabricante')
+    
+    fieldsets = (
+        ('Equipos', {
+            'fields': ('equipo_base', 'equipo_compatible')
+        }),
+        ('Regla de Validación', {
+            'fields': ('tipo_validacion', 'valor_minimo', 'valor_maximo', 'es_critico')
+        }),
+        ('Mensaje', {
+            'fields': ('mensaje_alerta',),
+            'classes': ('wide',),
+        }),
+        ('Estado', {
+            'fields': ('activo',),
+        }),
+    )
+    
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        return qs.select_related('equipo_base', 'equipo_compatible')
+
+
+@admin.register(ChartExplanation)
+class ChartExplanationAdmin(admin.ModelAdmin):
+    list_display = ('tipo_grafico', 'proyecto', 'titulo_corto', 'es_personalizada', 'fecha_actualizacion')
+    list_filter = ('tipo_grafico', 'es_personalizada', 'fecha_actualizacion')
+    search_fields = ('proyecto__nombre', 'titulo_corto', 'explicacion_tecnica')
+    readonly_fields = ('fecha_creacion', 'fecha_actualizacion')
+    
+    fieldsets = (
+        ('Gráfico', {
+            'fields': ('tipo_grafico', 'proyecto', 'es_personalizada')
+        }),
+        ('Contenido', {
+            'fields': ('titulo_corto', 'explicacion_tecnica', 'puntos_clave', 'recomendaciones'),
+            'classes': ('wide',),
+        }),
+        ('Metadata', {
+            'fields': ('fecha_creacion', 'fecha_actualizacion'),
+            'classes': ('collapse',),
+        }),
+    )
+    
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        return qs.select_related('proyecto')

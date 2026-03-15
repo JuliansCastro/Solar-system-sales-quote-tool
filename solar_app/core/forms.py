@@ -9,7 +9,10 @@ from decimal import Decimal
 from django import forms
 from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
 from django.core.exceptions import ValidationError
-from .models import User, Cliente, Proyecto, Equipo, Cotizacion, CotizacionItem, Carga, CargaTipo, CompanySettings
+from .models import (
+    User, Cliente, Proyecto, Equipo, Cotizacion, CotizacionItem, Carga, CargaTipo, CompanySettings,
+    SelectedEquipo, EquipoCompatibilidad, ChartExplanation,
+)
 
 
 # ──────────────────────────────────────────────
@@ -110,9 +113,8 @@ class ClienteForm(forms.ModelForm):
     class Meta:
         model = Cliente
         fields = [
-            'nombre', 'email', 'telefono', 'direccion', 'ciudad',
-            'departamento', 'consumo_mensual_kwh', 'tarifa_electrica',
-            'estrato', 'notas',
+            'nombre', 'email', 'telefono', 'direccion', 'departamento', 'municipio',
+            'consumo_mensual_kwh', 'tarifa_electrica', 'estrato', 'notas',
         ]
         widgets = {
             'nombre': forms.TextInput(attrs={
@@ -132,13 +134,13 @@ class ClienteForm(forms.ModelForm):
                 'rows': 2,
                 'placeholder': 'Dirección completa',
             }),
-            'ciudad': forms.TextInput(attrs={
-                'class': 'form-input',
-                'placeholder': 'Ciudad',
+            'departamento': forms.Select(attrs={
+                'class': 'form-select',
+                'id': 'id_departamento',
             }),
-            'departamento': forms.TextInput(attrs={
-                'class': 'form-input',
-                'placeholder': 'Departamento',
+            'municipio': forms.Select(attrs={
+                'class': 'form-select',
+                'id': 'id_municipio',
             }),
             'consumo_mensual_kwh': forms.NumberInput(attrs={
                 'class': 'form-input',
@@ -224,6 +226,12 @@ class ProyectoForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
+
+        # For new projects, show empty coordinates instead of model defaults.
+        if not self.instance.pk and not self.is_bound:
+            self.initial['latitud'] = ''
+            self.initial['longitud'] = ''
+
         if user and user.is_seller:
             self.fields['cliente'].queryset = Cliente.objects.filter(creado_por=user)
 
@@ -528,12 +536,144 @@ class CargaTipoForm(forms.ModelForm):
             'activo': forms.CheckboxInput(attrs={'class': 'form-checkbox'}),
         }
 
+
+# ──────────────────────────────────────────────
+# EQUIPMENT SELECTION FORMS
+# ──────────────────────────────────────────────
+
+class SelectedEquipoForm(forms.ModelForm):
+    """Form for selecting and managing equipment in a project."""
+
+    class Meta:
+        model = SelectedEquipo
+        fields = ['equipo', 'tipo_equipo', 'cantidad', 'notas']
+        widgets = {
+            'equipo': forms.Select(attrs={
+                'class': 'form-select',
+                'placeholder': 'Seleccione un equipo',
+            }),
+            'tipo_equipo': forms.Select(attrs={
+                'class': 'form-select',
+            }),
+            'cantidad': forms.NumberInput(attrs={
+                'class': 'form-input',
+                'min': '1',
+                'value': '1',
+                'placeholder': 'Cantidad',
+            }),
+            'notas': forms.Textarea(attrs={
+                'class': 'form-input',
+                'rows': 2,
+                'placeholder': 'Notas adicionales (opcional)',
+            }),
+        }
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Solo mostrar el campo 'activo' al editar (instance ya existe en BD)
-        if self.instance and self.instance.pk:
-            self.fields['activo'] = forms.BooleanField(
-                required=False,
-                widget=forms.CheckboxInput(attrs={'class': 'form-checkbox'}),
-                label='Activo',
-            )
+        # Filter equipment by type if available and editing
+        if self.instance.pk and self.instance.tipo_equipo:
+            tipo_map = {
+                'panel': 'panel',
+                'inversor': 'inversor',
+                'estructura': 'estructura',
+                'regulador': 'regulador',
+                'bateria': 'bateria',
+                'otro': 'accesorio',
+            }
+            categoria = tipo_map.get(self.instance.tipo_equipo)
+            if categoria:
+                self.fields['equipo'].queryset = Equipo.objects.filter(
+                    activo=True,
+                    categoria=categoria
+                ).order_by('fabricante', 'modelo')
+
+
+class EquipoFilterFormForSelection(forms.Form):
+    """Form for filtering equipment when selecting during sizing."""
+
+    tipo_equipo = forms.ChoiceField(
+        choices=[('', 'Todos los tipos')] + list(SelectedEquipo.TipoEquipo.choices),
+        required=False,
+        widget=forms.Select(attrs={'class': 'form-select'}),
+        label='Tipo de equipo',
+    )
+    categoria_equipo = forms.ChoiceField(
+        choices=[('', 'Todas las categorías')] + list(Equipo.Categoria.choices),
+        required=False,
+        widget=forms.Select(attrs={'class': 'form-select'}),
+        label='Categoría',
+    )
+    fabricante = forms.CharField(
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'form-input',
+            'placeholder': 'Filtrar por fabricante...',
+        }),
+    )
+    potencia_min = forms.FloatField(
+        required=False,
+        widget=forms.NumberInput(attrs={
+            'class': 'form-input',
+            'placeholder': 'Potencia mínima (W)',
+            'min': '0',
+            'step': '100',
+        }),
+    )
+    potencia_max = forms.FloatField(
+        required=False,
+        widget=forms.NumberInput(attrs={
+            'class': 'form-input',
+            'placeholder': 'Potencia máxima (W)',
+            'min': '0',
+            'step': '100',
+        }),
+    )
+    en_stock = forms.BooleanField(
+        required=False,
+        widget=forms.CheckboxInput(attrs={'class': 'form-checkbox'}),
+        label='Solo disponibles en stock',
+    )
+    buscar = forms.CharField(
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'form-input',
+            'placeholder': 'Buscar por nombre, modelo, SKU...',
+        }),
+    )
+
+
+class ChartExplanationForm(forms.ModelForm):
+    """Form for editing chart explanations."""
+
+    class Meta:
+        model = ChartExplanation
+        fields = [
+            'tipo_grafico', 'titulo_corto', 'explicacion_tecnica',
+            'puntos_clave', 'recomendaciones',
+        ]
+        widgets = {
+            'tipo_grafico': forms.Select(attrs={
+                'class': 'form-select',
+                'disabled': 'disabled',
+            }),
+            'titulo_corto': forms.TextInput(attrs={
+                'class': 'form-input',
+                'placeholder': 'Título corto del gráfico',
+                'maxlength': '150',
+            }),
+            'explicacion_tecnica': forms.Textarea(attrs={
+                'class': 'form-input',
+                'rows': 6,
+                'placeholder': 'Explicación técnica detallada (3-5 párrafos)',
+            }),
+            'puntos_clave': forms.Textarea(attrs={
+                'class': 'form-input',
+                'rows': 4,
+                'placeholder': 'Puntos clave (uno por línea)',
+            }),
+            'recomendaciones': forms.Textarea(attrs={
+                'class': 'form-input',
+                'rows': 3,
+                'placeholder': 'Recomendaciones para el usuario (opcional)',
+            }),
+        }

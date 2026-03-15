@@ -6,11 +6,11 @@
 <div class="max-w-4xl mx-auto">
     <!-- Header -->
     <div class="mb-6">
-        <h1 class="text-2xl font-bold text-gray-900">
+        <h1 class="text-2xl font-extrabold text-ink-950 tracking-tight">
             <i class="fas fa-sliders-h text-solar-600 mr-2"></i>
             Configuración de Empresa
         </h1>
-        <p class="text-sm text-gray-500 mt-1">
+        <p class="text-sm text-ink-400 mt-1">
             Estos datos se mostrarán en los reportes PDF/Excel y en el encabezado de la aplicación.
         </p>
     </div>
@@ -21,24 +21,24 @@
         <!-- Current logo preview -->
         {% if settings_obj.logo %}
         <div class="card p-6">
-            <h2 class="text-lg font-semibold text-gray-800 mb-3">
+            <h2 class="text-lg font-semibold text-ink-800 mb-3">
                 <i class="fas fa-image text-solar-500 mr-2"></i>Logo actual
             </h2>
             <div class="flex items-center gap-4">
-                <img src="{{ settings_obj.logo.url }}" alt="Logo" class="h-20 w-auto rounded-lg border border-gray-200 shadow-sm">
-                <p class="text-sm text-gray-500">{{ settings_obj.logo.name }}</p>
+                <img src="{{ settings_obj.logo.url }}" alt="Logo" class="h-20 w-auto rounded-soft border border-canvas-200 shadow-xs">
+                <p class="text-sm text-ink-400">{{ settings_obj.logo.name }}</p>
             </div>
         </div>
         {% endif %}
 
         <!-- Company Identity -->
         <div class="card p-6">
-            <h2 class="text-lg font-semibold text-gray-800 mb-4">
+            <h2 class="text-lg font-semibold text-ink-800 mb-4">
                 <i class="fas fa-building text-solar-500 mr-2"></i>Identidad de la Empresa
             </h2>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                    <label for="{{ form.name.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+                    <label for="{{ form.name.id_for_label }}" class="form-label">
                         {{ form.name.label }} <span class="text-red-500">*</span>
                     </label>
                     {{ form.name }}
@@ -47,7 +47,7 @@
                     {% endif %}
                 </div>
                 <div>
-                    <label for="{{ form.nit.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+                    <label for="{{ form.nit.id_for_label }}" class="form-label">
                         {{ form.nit.label }}
                     </label>
                     {{ form.nit }}
@@ -56,36 +56,36 @@
                     {% endif %}
                 </div>
                 <div class="md:col-span-2">
-                    <label for="{{ form.slogan.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+                    <label for="{{ form.slogan.id_for_label }}" class="form-label">
                         {{ form.slogan.label }}
                     </label>
                     {{ form.slogan }}
                     {% if form.slogan.errors %}
                     <p class="text-red-500 text-xs mt-1">{{ form.slogan.errors.0 }}</p>
                     {% endif %}
-                    <p class="text-xs text-gray-400 mt-1">{{ form.slogan.help_text }}</p>
+                    <p class="text-xs text-ink-400 mt-1">{{ form.slogan.help_text }}</p>
                 </div>
                 <div class="md:col-span-2">
-                    <label for="{{ form.logo.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+                    <label for="{{ form.logo.id_for_label }}" class="form-label">
                         {{ form.logo.label }}
                     </label>
                     {{ form.logo }}
                     {% if form.logo.errors %}
                     <p class="text-red-500 text-xs mt-1">{{ form.logo.errors.0 }}</p>
                     {% endif %}
-                    <p class="text-xs text-gray-400 mt-1">{{ form.logo.help_text }}</p>
+                    <p class="text-xs text-ink-400 mt-1">{{ form.logo.help_text }}</p>
                 </div>
             </div>
         </div>
 
         <!-- Contact Information -->
         <div class="card p-6">
-            <h2 class="text-lg font-semibold text-gray-800 mb-4">
+            <h2 class="text-lg font-semibold text-ink-800 mb-4">
                 <i class="fas fa-address-card text-solar-500 mr-2"></i>Información de Contacto
             </h2>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                    <label for="{{ form.phone.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+                    <label for="{{ form.phone.id_for_label }}" class="form-label">
                         {{ form.phone.label }}
                     </label>
                     {{ form.phone }}
@@ -94,7 +94,7 @@
                     {% endif %}
                 </div>
                 <div>
-                    <label for="{{ form.email.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+                    <label for="{{ form.email.id_for_label }}" class="form-label">
                         {{ form.email.label }}
                     </label>
                     {{ form.email }}
@@ -103,7 +103,7 @@
                     {% endif %}
                 </div>
                 <div class="md:col-span-2">
-                    <label for="{{ form.address.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+                    <label for="{{ form.address.id_for_label }}" class="form-label">
                         {{ form.address.label }}
                     </label>
                     {{ form.address }}
@@ -112,7 +112,7 @@
                     {% endif %}
                 </div>
                 <div>
-                    <label for="{{ form.website.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+                    <label for="{{ form.website.id_for_label }}" class="form-label">
                         {{ form.website.label }}
                     </label>
                     {{ form.website }}
@@ -124,11 +124,11 @@
         </div>
 
         <!-- Preview -->
-        <div class="card p-6 bg-gray-50">
-            <h2 class="text-lg font-semibold text-gray-800 mb-3">
+        <div class="card p-6 surface-inset">
+            <h2 class="text-lg font-semibold text-ink-800 mb-3">
                 <i class="fas fa-eye text-solar-500 mr-2"></i>Vista previa (datos actuales)
             </h2>
-            <div class="bg-white rounded-lg border border-gray-200 p-4">
+            <div class="bg-white rounded-soft border border-canvas-200 p-4">
                 <div class="flex items-center gap-3 mb-2">
                     {% if settings_obj.logo %}
                     <img src="{{ settings_obj.logo.url }}" alt="Logo" class="h-10 w-auto">
@@ -138,11 +138,11 @@
                     </div>
                     {% endif %}
                     <div>
-                        <h3 class="text-lg font-bold text-gray-900">{{ settings_obj.name }}</h3>
-                        <p class="text-xs text-gray-500">{{ settings_obj.slogan }}</p>
+                        <h3 class="text-lg font-bold text-ink-900">{{ settings_obj.name }}</h3>
+                        <p class="text-xs text-ink-400">{{ settings_obj.slogan }}</p>
                     </div>
                 </div>
-                <div class="text-xs text-gray-500 space-x-3 mt-2">
+                <div class="text-xs text-ink-400 space-x-3 mt-2">
                     {% if settings_obj.nit %}<span>NIT: {{ settings_obj.nit }}</span>{% endif %}
                     {% if settings_obj.address %}<span>| {{ settings_obj.address }}</span>{% endif %}
                     {% if settings_obj.phone %}<span>| Tel: {{ settings_obj.phone }}</span>{% endif %}

@@ -13,7 +13,7 @@
         </div>
 
         <div class="bg-white rounded-2xl shadow-xl p-8">
-            <h2 class="text-xl font-semibold text-gray-900 mb-6">Iniciar sesión</h2>
+            <h2 class="text-xl font-semibold text-ink-900 mb-6">Iniciar sesión</h2>
 
             {% if form.errors %}
             <div class="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
@@ -25,11 +25,11 @@
             <form method="post" class="space-y-4">
                 {% csrf_token %}
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Usuario</label>
+                    <label class="form-label">Usuario</label>
                     {{ form.username }}
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Contraseña</label>
+                    <label class="form-label">Contraseña</label>
                     {{ form.password }}
                 </div>
                 <button type="submit" class="w-full btn-primary justify-center py-3 text-base">

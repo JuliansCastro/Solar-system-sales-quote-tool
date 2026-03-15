@@ -3,29 +3,32 @@
 {% block title %}Cotización {{ cotizacion.numero }} - SolarQuote{% endblock %}
 
 {% block content %}
-<div class="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between">
+<div class="mb-6">
+    <a href="{% url 'cotizacion_list' %}" class="text-sm text-ink-400 hover:text-solar-600 transition-base">
+        <i class="fas fa-arrow-left mr-1"></i> Volver a cotizaciones
+    </a>
+</div>
+
+<div class="mb-6 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
     <div>
-        <a href="{% url 'cotizacion_list' %}" class="text-solar-600 hover:underline text-sm">
-            <i class="fas fa-arrow-left mr-1"></i> Cotizaciones
-        </a>
-        <h1 class="text-2xl font-bold text-gray-900 mt-1">{{ cotizacion.numero }}</h1>
+        <h1 class="text-2xl font-extrabold text-ink-950 tracking-tight font-mono">{{ cotizacion.numero }}</h1>
     </div>
-    <div class="mt-4 sm:mt-0 flex gap-2 flex-wrap">
+    <div class="flex gap-2 flex-wrap">
         <a href="{% url 'cotizacion_pdf' cotizacion.pk %}" class="btn-secondary text-xs">
-            <i class="fas fa-file-pdf text-red-500 mr-1"></i> PDF
+            <i class="fas fa-file-pdf text-red-500 text-xs"></i> PDF
         </a>
         <a href="{% url 'cotizacion_excel' cotizacion.pk %}" class="btn-secondary text-xs">
-            <i class="fas fa-file-excel text-green-600 mr-1"></i> Excel
+            <i class="fas fa-file-excel text-green-600 text-xs"></i> Excel
         </a>
         <a href="{% url 'cotizacion_update' cotizacion.pk %}" class="btn-primary text-xs">
-            <i class="fas fa-edit mr-1"></i> Editar
+            <i class="fas fa-edit text-xs"></i> Editar
         </a>
         <a href="{% url 'cotizacion_clonar' cotizacion.pk %}" class="btn-secondary text-xs"
            onclick="return confirm('¿Deseas clonar esta cotización?')">
-            <i class="fas fa-copy mr-1"></i> Clonar
+            <i class="fas fa-copy text-xs"></i> Clonar
         </a>
-        <a href="{% url 'cotizacion_delete' cotizacion.pk %}" class="bg-red-500 hover:bg-red-600 text-white px-3 py-1.5 rounded-lg text-xs">
-            <i class="fas fa-trash mr-1"></i> Eliminar
+        <a href="{% url 'cotizacion_delete' cotizacion.pk %}" class="btn-danger text-xs">
+            <i class="fas fa-trash text-xs"></i> Eliminar
         </a>
     </div>
 </div>
@@ -37,28 +40,28 @@
         {# Estado & Fechas #}
         <div class="card p-6">
             <div class="flex items-center gap-4 mb-4">
-                <span class="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-semibold
-                    {% if cotizacion.estado == 'aprobada' %}bg-green-100 text-green-700
-                    {% elif cotizacion.estado == 'rechazada' %}bg-red-100 text-red-700
-                    {% elif cotizacion.estado == 'enviada' %}bg-blue-100 text-blue-700
-                    {% elif cotizacion.estado == 'vencida' %}bg-gray-100 text-gray-500
-                    {% else %}bg-yellow-100 text-yellow-700{% endif %}">
+                <span class="badge
+                    {% if cotizacion.estado == 'aprobada' %}badge-green
+                    {% elif cotizacion.estado == 'rechazada' %}badge-red
+                    {% elif cotizacion.estado == 'enviada' %}badge-blue
+                    {% elif cotizacion.estado == 'vencida' %}badge-gray
+                    {% else %}badge-amber{% endif %}">
                     {{ cotizacion.get_estado_display }}
                 </span>
-                <span class="text-sm text-gray-500">
+                <span class="text-sm text-ink-400">
                     Emitida: {{ cotizacion.fecha_emision|date:"d M Y" }} · Válida hasta: {{ cotizacion.fecha_vencimiento|date:"d M Y" }}
                 </span>
             </div>
 
             <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                <div><span class="text-gray-500 block">Proyecto</span>
-                    <a href="{% url 'proyecto_detail' cotizacion.proyecto.pk %}" class="text-solar-600 font-medium hover:underline">{{ cotizacion.proyecto.nombre }}</a>
+                <div><span class="data-label">Proyecto</span>
+                    <a href="{% url 'proyecto_detail' cotizacion.proyecto.pk %}" class="text-solar-600 font-medium hover:text-solar-700 transition-base">{{ cotizacion.proyecto.nombre }}</a>
                 </div>
-                <div><span class="text-gray-500 block">Cliente</span>
-                    <a href="{% url 'cliente_detail' cotizacion.proyecto.cliente.pk %}" class="font-medium hover:underline">{{ cotizacion.proyecto.cliente.nombre }}</a>
+                <div><span class="data-label">Cliente</span>
+                    <a href="{% url 'cliente_detail' cotizacion.proyecto.cliente.pk %}" class="font-medium hover:text-solar-600 transition-base">{{ cotizacion.proyecto.cliente.nombre }}</a>
                 </div>
-                <div><span class="text-gray-500 block">Tipo de cliente</span><span class="font-medium">{{ cotizacion.get_tipo_cliente_display }}</span></div>
-                <div><span class="text-gray-500 block">Vendedor</span><span class="font-medium">{{ cotizacion.creado_por.get_full_name|default:cotizacion.creado_por.username }}</span></div>
+                <div><span class="data-label">Tipo de cliente</span><span class="font-medium">{{ cotizacion.get_tipo_cliente_display }}</span></div>
+                <div><span class="data-label">Vendedor</span><span class="font-medium">{{ cotizacion.creado_por.get_full_name|default:cotizacion.creado_por.username }}</span></div>
             </div>
         </div>
 
@@ -67,42 +70,42 @@
         <div class="card p-6">
             <div class="flex items-center gap-2 mb-2">
                 <i class="fas fa-edit text-solar-500"></i>
-                <h2 class="font-semibold text-gray-800">Total Ingresado Manualmente</h2>
+                <h2 class="font-semibold text-ink-800">Total Ingresado Manualmente</h2>
             </div>
-            <p class="text-gray-500 text-sm">El valor total de esta cotización fue ingresado manualmente sin desglose de ítems.</p>
+            <p class="text-ink-400 text-sm">El valor total de esta cotización fue ingresado manualmente sin desglose de ítems.</p>
         </div>
         {% else %}
         <div class="card overflow-hidden">
-            <div class="px-6 py-4 bg-gray-50 border-b">
-                <h2 class="font-semibold text-gray-800"><i class="fas fa-boxes mr-2 text-solar-500"></i> Ítems de la Cotización</h2>
+            <div class="px-6 py-4 surface-inset border-b border-canvas-200/60">
+                <h2 class="font-semibold text-ink-800"><i class="fas fa-boxes mr-2 text-solar-500"></i> Ítems de la Cotización</h2>
             </div>
             <div class="overflow-x-auto">
-                <table class="min-w-full">
-                    <thead class="bg-gray-50 text-xs text-gray-500 uppercase">
+                <table class="min-w-full" role="table">
+                    <thead class="surface-inset border-b border-canvas-200/60">
                         <tr>
-                            <th class="px-6 py-3 text-left">#</th>
-                            <th class="px-6 py-3 text-left">Equipo</th>
-                            <th class="px-6 py-3 text-center">Cantidad</th>
-                            <th class="px-6 py-3 text-right">Precio Unit.</th>
-                            <th class="px-6 py-3 text-right">Descuento</th>
-                            <th class="px-6 py-3 text-right">Subtotal</th>
+                            <th class="table-header">#</th>
+                            <th class="table-header">Equipo</th>
+                            <th class="table-header text-center">Cantidad</th>
+                            <th class="table-header text-right">Precio Unit.</th>
+                            <th class="table-header text-right">Descuento</th>
+                            <th class="table-header text-right">Subtotal</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-gray-100">
+                    <tbody class="divide-y divide-canvas-100">
                         {% for item in cotizacion.items.all %}
-                        <tr>
-                            <td class="px-6 py-3 text-sm text-gray-400">{{ forloop.counter }}</td>
-                            <td class="px-6 py-3">
-                                <div class="text-sm font-medium">{{ item.equipo.nombre }}</div>
-                                <div class="text-xs text-gray-400">{{ item.equipo.sku }} · {{ item.equipo.get_categoria_display }}</div>
+                        <tr class="hover:bg-canvas-50 transition-base">
+                            <td class="table-cell text-ink-400">{{ forloop.counter }}</td>
+                            <td class="table-cell">
+                                <div class="text-sm font-medium text-ink-900">{{ item.equipo.nombre }}</div>
+                                <div class="text-xs text-ink-400 font-mono">{{ item.equipo.sku }} · {{ item.equipo.get_categoria_display }}</div>
                             </td>
-                            <td class="px-6 py-3 text-center text-sm">{{ item.cantidad }}</td>
-                            <td class="px-6 py-3 text-right text-sm">${{ item.precio_unitario|floatformat:0 }}</td>
-                            <td class="px-6 py-3 text-right text-sm">{{ item.descuento_item }}%</td>
-                            <td class="px-6 py-3 text-right text-sm font-semibold">${{ item.subtotal|floatformat:0 }}</td>
+                            <td class="table-cell text-center">{{ item.cantidad }}</td>
+                            <td class="table-cell text-right font-mono">${{ item.precio_unitario|floatformat:0|intcomma }}</td>
+                            <td class="table-cell text-right font-mono">{{ item.descuento_item }}%</td>
+                            <td class="table-cell text-right font-mono font-semibold">${{ item.subtotal|floatformat:0|intcomma }}</td>
                         </tr>
                         {% empty %}
-                        <tr><td colspan="6" class="px-6 py-8 text-center text-gray-400">Sin ítems</td></tr>
+                        <tr><td colspan="6" class="px-6 py-8 text-center text-ink-400">Sin ítems</td></tr>
                         {% endfor %}
                     </tbody>
                 </table>
@@ -112,40 +115,40 @@
 
         {# Gráficos interactivos #}
         <div class="card p-6">
-            <h2 class="font-semibold text-gray-800 mb-4"><i class="fas fa-chart-pie mr-2 text-solar-500"></i> Distribución de Costos</h2>
+            <h2 class="font-semibold text-ink-800 mb-4"><i class="fas fa-chart-pie mr-2 text-solar-500"></i> Distribución de Costos</h2>
             <div id="chartCostDist" class="w-full" style="height:340px;"></div>
         </div>
 
         {# Dimensionamiento - Resultados #}
         {% if proyecto.potencia_pico_kwp %}
         <div class="card p-6">
-            <h2 class="font-semibold text-gray-800 mb-4"><i class="fas fa-calculator mr-2 text-solar-500"></i> Resultados del Dimensionamiento</h2>
+            <h2 class="font-semibold text-ink-800 mb-4"><i class="fas fa-calculator mr-2 text-solar-500"></i> Resultados del Dimensionamiento</h2>
             <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-                <div class="stat-card text-center bg-gradient-to-br from-solar-50 to-solar-100">
+                <div class="stat-card text-center bg-solar-50">
                     <i class="fas fa-solar-panel text-solar-500 text-xl mb-1"></i>
-                    <p class="text-2xl font-bold text-solar-700">{{ proyecto.potencia_pico_kwp }}</p>
-                    <p class="text-xs text-gray-600">kWp Potencia pico</p>
+                    <p class="text-2xl font-extrabold font-mono text-solar-700">{{ proyecto.potencia_pico_kwp }}</p>
+                    <p class="text-xs text-ink-500">kWp Potencia pico</p>
                 </div>
                 <div class="stat-card text-center">
                     <i class="fas fa-th text-blue-500 text-xl mb-1"></i>
-                    <p class="text-2xl font-bold text-gray-900">{{ proyecto.numero_paneles }}</p>
-                    <p class="text-xs text-gray-600">Paneles</p>
+                    <p class="text-2xl font-extrabold font-mono text-ink-900">{{ proyecto.numero_paneles }}</p>
+                    <p class="text-xs text-ink-500">Paneles</p>
                 </div>
                 <div class="stat-card text-center">
                     <i class="fas fa-bolt text-green-500 text-xl mb-1"></i>
-                    <p class="text-2xl font-bold text-green-600">{{ proyecto.generacion_mensual_kwh|floatformat:0 }}</p>
-                    <p class="text-xs text-gray-600">kWh/mes generados</p>
+                    <p class="text-2xl font-extrabold font-mono text-green-600">{{ proyecto.generacion_mensual_kwh|floatformat:0 }}</p>
+                    <p class="text-xs text-ink-500">kWh/mes generados</p>
                 </div>
                 {% if proyecto.porcentaje_cobertura %}
                 <div class="stat-card text-center">
                     <i class="fas fa-chart-pie text-purple-500 text-xl mb-1"></i>
-                    <p class="text-2xl font-bold text-purple-600">{{ proyecto.porcentaje_cobertura|floatformat:0 }}%</p>
-                    <p class="text-xs text-gray-600">Cobertura solar</p>
+                    <p class="text-2xl font-extrabold font-mono text-purple-600">{{ proyecto.porcentaje_cobertura|floatformat:0 }}%</p>
+                    <p class="text-xs text-ink-500">Cobertura solar</p>
                 </div>
                 {% endif %}
             </div>
             {% if proyecto.capacidad_baterias_kwh %}
-            <div class="p-3 bg-orange-50 rounded-lg border border-orange-200">
+            <div class="p-3 bg-orange-50 rounded-soft border border-orange-200">
                 <p class="text-sm text-orange-800">
                     <i class="fas fa-battery-full mr-1"></i>
                     <strong>Banco de baterías:</strong> {{ proyecto.capacidad_baterias_kwh }} kWh · Autonomía: {{ proyecto.autonomia_dias }} días
@@ -159,12 +162,12 @@
         {% if proyecto.potencia_pico_kwp %}
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div class="card p-6">
-                <h3 class="font-semibold text-gray-800 mb-4">Consumo vs Generación Solar</h3>
+                <h3 class="font-semibold text-ink-800 mb-4">Consumo vs Generación Solar</h3>
                 <div id="chartConsumo" style="height:300px;"></div>
             </div>
             {% if proyeccion %}
             <div class="card p-6">
-                <h3 class="font-semibold text-gray-800 mb-4">Retorno de inversión acumulado</h3>
+                <h3 class="font-semibold text-ink-800 mb-4">Retorno de inversión acumulado</h3>
                 <div id="chartROI" style="height:300px;"></div>
             </div>
             {% endif %}
@@ -172,11 +175,11 @@
 
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div class="card p-6">
-                <h3 class="font-semibold text-gray-800 mb-4">Radiación solar mensual (PVGIS)</h3>
+                <h3 class="font-semibold text-ink-800 mb-4">Radiación solar mensual (PVGIS)</h3>
                 <div id="chartRadiacion" style="height:300px;"></div>
             </div>
             <div class="card p-6">
-                <h3 class="font-semibold text-gray-800 mb-4">HSP mensual (Horas Solar Pico)</h3>
+                <h3 class="font-semibold text-ink-800 mb-4">HSP mensual (Horas Solar Pico)</h3>
                 <div id="chartHSP" style="height:300px;"></div>
             </div>
         </div>
@@ -185,8 +188,8 @@
         {# Condiciones #}
         {% if cotizacion.condiciones %}
         <div class="card p-6">
-            <h2 class="font-semibold text-gray-800 mb-3"><i class="fas fa-list-check mr-2 text-solar-500"></i> Condiciones Comerciales</h2>
-            <div class="prose prose-sm max-w-none text-gray-600 whitespace-pre-line">{{ cotizacion.condiciones }}</div>
+            <h2 class="font-semibold text-ink-800 mb-3"><i class="fas fa-list-check mr-2 text-solar-500"></i> Condiciones Comerciales</h2>
+            <div class="prose prose-sm max-w-none text-ink-500 whitespace-pre-line">{{ cotizacion.condiciones }}</div>
         </div>
         {% endif %}
     </div>
@@ -194,27 +197,27 @@
     {# ── Sidebar Resumen Financiero ── #}
     <div class="space-y-6">
         <div class="card p-6 bg-gradient-to-br from-solar-50 to-amber-50 border border-solar-200">
-            <h2 class="font-semibold text-gray-800 mb-4"><i class="fas fa-calculator mr-2 text-solar-500"></i> Resumen Financiero</h2>
+            <h2 class="font-semibold text-ink-800 mb-4"><i class="fas fa-calculator mr-2 text-solar-500"></i> Resumen Financiero</h2>
             <div class="space-y-3 text-sm">
                 {% if cotizacion.usar_total_manual %}
-                <div class="flex justify-between"><span class="text-gray-600">IVA ({{ cotizacion.iva_porcentaje|floatformat:0 }}%)</span><span class="font-medium">${{ cotizacion.iva_monto|floatformat:0|intcomma }}</span></div>
-                <div class="flex justify-between text-xl font-bold pt-2">
+                <div class="flex justify-between"><span class="text-ink-500">IVA ({{ cotizacion.iva_porcentaje|floatformat:0 }}%)</span><span class="font-medium font-mono">${{ cotizacion.iva_monto|floatformat:0|intcomma }}</span></div>
+                <div class="flex justify-between text-xl font-extrabold pt-2">
                     <span>Total</span>
-                    <span class="text-solar-600">${{ cotizacion.total|floatformat:0|intcomma }}</span>
+                    <span class="text-solar-600 font-mono">${{ cotizacion.total|floatformat:0|intcomma }}</span>
                 </div>
-                <p class="text-xs text-gray-400 italic">Total ingresado manualmente</p>
+                <p class="text-xs text-ink-400 italic">Total ingresado manualmente</p>
                 {% else %}
-                <div class="flex justify-between"><span class="text-gray-600">Subtotal equipos</span><span class="font-medium">${{ cotizacion.subtotal|floatformat:0|intcomma }}</span></div>
-                <div class="flex justify-between"><span class="text-gray-600">Instalación</span><span class="font-medium">${{ cotizacion.costo_instalacion|floatformat:0|intcomma }}</span></div>
-                <div class="flex justify-between"><span class="text-gray-600">Transporte</span><span class="font-medium">${{ cotizacion.costo_transporte|floatformat:0|intcomma }}</span></div>
+                <div class="flex justify-between"><span class="text-ink-500">Subtotal equipos</span><span class="font-medium font-mono">${{ cotizacion.subtotal|floatformat:0|intcomma }}</span></div>
+                <div class="flex justify-between"><span class="text-ink-500">Instalación</span><span class="font-medium font-mono">${{ cotizacion.costo_instalacion|floatformat:0|intcomma }}</span></div>
+                <div class="flex justify-between"><span class="text-ink-500">Transporte</span><span class="font-medium font-mono">${{ cotizacion.costo_transporte|floatformat:0|intcomma }}</span></div>
                 {% if cotizacion.descuento_porcentaje %}
-                <div class="flex justify-between"><span class="text-gray-600">Descuento ({{ cotizacion.descuento_porcentaje }}%)</span><span class="font-medium text-red-500">-${{ cotizacion.descuento_monto|floatformat:0|intcomma }}</span></div>
+                <div class="flex justify-between"><span class="text-ink-500">Descuento ({{ cotizacion.descuento_porcentaje }}%)</span><span class="font-medium font-mono text-red-500">-${{ cotizacion.descuento_monto|floatformat:0|intcomma }}</span></div>
                 {% endif %}
                 <hr class="border-solar-200">
-                <div class="flex justify-between"><span class="text-gray-600">IVA ({{ cotizacion.iva_porcentaje|floatformat:0 }}%)</span><span class="font-medium">${{ cotizacion.iva_monto|floatformat:0|intcomma }}</span></div>
-                <div class="flex justify-between text-xl font-bold pt-2">
+                <div class="flex justify-between"><span class="text-ink-500">IVA ({{ cotizacion.iva_porcentaje|floatformat:0 }}%)</span><span class="font-medium font-mono">${{ cotizacion.iva_monto|floatformat:0|intcomma }}</span></div>
+                <div class="flex justify-between text-xl font-extrabold pt-2">
                     <span>Total</span>
-                    <span class="text-solar-600">${{ cotizacion.total|floatformat:0|intcomma }}</span>
+                    <span class="text-solar-600 font-mono">${{ cotizacion.total|floatformat:0|intcomma }}</span>
                 </div>
                 {% endif %}
             </div>
@@ -222,26 +225,26 @@
 
         {# Info del proyecto asociado #}
         <div class="card p-6">
-            <h3 class="font-semibold text-gray-800 mb-3"><i class="fas fa-solar-panel mr-2 text-solar-500"></i> Proyecto</h3>
+            <h3 class="font-semibold text-ink-800 mb-3"><i class="fas fa-solar-panel mr-2 text-solar-500"></i> Proyecto</h3>
             <dl class="space-y-2 text-sm">
                 <div class="flex justify-between">
-                    <dt class="text-gray-500">Código</dt>
+                    <dt class="text-ink-500">Código</dt>
                     <dd class="font-mono text-xs">{{ cotizacion.proyecto.codigo }}</dd>
                 </div>
                 <div class="flex justify-between">
-                    <dt class="text-gray-500">Tipo</dt>
+                    <dt class="text-ink-500">Tipo</dt>
                     <dd>{{ cotizacion.proyecto.get_tipo_sistema_display }}</dd>
                 </div>
                 {% if cotizacion.proyecto.potencia_pico_kwp %}
                 <div class="flex justify-between">
-                    <dt class="text-gray-500">Potencia</dt>
-                    <dd class="font-semibold">{{ cotizacion.proyecto.potencia_pico_kwp|floatformat:2 }} kWp</dd>
+                    <dt class="text-ink-500">Potencia</dt>
+                    <dd class="font-semibold font-mono">{{ cotizacion.proyecto.potencia_pico_kwp|floatformat:2 }} kWp</dd>
                 </div>
                 {% endif %}
                 {% if cotizacion.proyecto.generacion_mensual_kwh %}
                 <div class="flex justify-between">
-                    <dt class="text-gray-500">Generación est.</dt>
-                    <dd>{{ cotizacion.proyecto.generacion_mensual_kwh|floatformat:0 }} kWh/mes</dd>
+                    <dt class="text-ink-500">Generación est.</dt>
+                    <dd class="font-mono">{{ cotizacion.proyecto.generacion_mensual_kwh|floatformat:0 }} kWh/mes</dd>
                 </div>
                 {% endif %}
             </dl>
@@ -249,10 +252,10 @@
 
         {# Historial #}
         <div class="card p-6">
-            <h3 class="font-semibold text-gray-800 mb-3"><i class="fas fa-clock-rotate-left mr-2 text-solar-500"></i> Historial</h3>
-            <ul class="text-sm text-gray-600 space-y-2">
-                <li><span class="text-gray-400">Creada:</span> {{ cotizacion.fecha_creacion|date:"d/m/Y H:i" }}</li>
-                <li><span class="text-gray-400">Modificada:</span> {{ cotizacion.fecha_actualizacion|date:"d/m/Y H:i" }}</li>
+            <h3 class="font-semibold text-ink-800 mb-3"><i class="fas fa-clock-rotate-left mr-2 text-solar-500"></i> Historial</h3>
+            <ul class="text-sm text-ink-500 space-y-2">
+                <li><span class="text-ink-400">Creada:</span> {{ cotizacion.fecha_creacion|date:"d/m/Y H:i" }}</li>
+                <li><span class="text-ink-400">Modificada:</span> {{ cotizacion.fecha_actualizacion|date:"d/m/Y H:i" }}</li>
             </ul>
         </div>
     </div>
@@ -292,7 +295,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 }, plotConfig);
             } else {
                 document.getElementById('chartCostDist').innerHTML =
-                    '<p class="text-center text-gray-400 py-8">No hay datos de costos para mostrar.</p>';
+                    '<p class="text-center text-ink-400 py-8">No hay datos de costos para mostrar.</p>';
             }
 
             // 2. Consumption vs Generation Bar Chart
@@ -372,7 +375,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     font: plotFont,
                 }, plotConfig);
             } else if (radEl) {
-                radEl.innerHTML = '<p class="text-center text-gray-400 py-8">Sin datos de radiación disponibles.</p>';
+                radEl.innerHTML = '<p class="text-center text-ink-400 py-8">Sin datos de radiación disponibles.</p>';
             }
 
             // 5. HSP Chart
@@ -408,13 +411,13 @@ document.addEventListener('DOMContentLoaded', function () {
                     font: plotFont,
                 }, plotConfig);
             } else if (hspEl) {
-                hspEl.innerHTML = '<p class="text-center text-gray-400 py-8">Sin datos de HSP disponibles.</p>';
+                hspEl.innerHTML = '<p class="text-center text-ink-400 py-8">Sin datos de HSP disponibles.</p>';
             }
         })
         .catch(err => {
             console.error('Error cargando gráficos:', err);
             document.getElementById('chartCostDist').innerHTML =
-                '<p class="text-center text-gray-400 py-8">No se pudieron cargar los datos del gráfico.</p>';
+                    '<p class="text-center text-ink-400 py-8">No se pudieron cargar los datos del gráfico.</p>';
         });
 });
 </script>

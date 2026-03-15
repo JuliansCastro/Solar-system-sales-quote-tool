@@ -1,208 +1,356 @@
 <!DOCTYPE html>
-<html lang="es" class="h-full bg-gray-50">
+<html lang="es" class="h-full">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Solar Quote Tool{% endblock %}</title>
+    <!-- Preconnect for performance -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <!-- Inter — warm humanist sans for body; JetBrains Mono for data/codes -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
             theme: {
                 extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
                     colors: {
+                        /* Warm amber tones — the sun on a rooftop */
                         solar: {
-                            50: '#fffbeb', 100: '#fef3c7', 200: '#fde68a',
-                            300: '#fcd34d', 400: '#fbbf24', 500: '#f59e0b',
-                            600: '#d97706', 700: '#b45309', 800: '#92400e',
-                            900: '#78350f',
-                        }
-                    }
-                }
-            }
+                            50:  '#fefcf3', 100: '#fdf6dd', 200: '#fbeab5',
+                            300: '#f8d97e', 400: '#f5c342', 500: '#eda921',
+                            600: '#d48b14', 700: '#a96712', 800: '#7f4e15',
+                            900: '#5c3a14', 950: '#351f09',
+                        },
+                        /* Warm stone canvas — Colombian afternoon light */
+                        canvas: {
+                            50:  '#faf9f7', 100: '#f5f3ef', 200: '#ece8e1',
+                            300: '#ddd7cc', 400: '#c4baa9', 500: '#a99d8a',
+                        },
+                        /* Ink — warm-shifted text */
+                        ink: {
+                            950: '#1c1917', 900: '#292524', 800: '#44403c',
+                            700: '#57534e', 600: '#78716c', 500: '#a8a29e',
+                            400: '#c4bfba', 300: '#d6d3ce', 200: '#e7e5e1',
+                        },
+                    },
+                    borderRadius: {
+                        'sm': '0.25rem',
+                        DEFAULT: '0.5rem',
+                        'md': '0.5rem',
+                        'lg': '0.75rem',
+                        'xl': '1rem',
+                        '2xl': '1.25rem',
+                    },
+                    boxShadow: {
+                        'xs':  '0 1px 2px 0 rgba(28,25,23,0.04)',
+                        'sm':  '0 1px 3px 0 rgba(28,25,23,0.06), 0 1px 2px -1px rgba(28,25,23,0.05)',
+                        'md':  '0 4px 6px -1px rgba(28,25,23,0.06), 0 2px 4px -2px rgba(28,25,23,0.04)',
+                        'lg':  '0 10px 15px -3px rgba(28,25,23,0.06), 0 4px 6px -4px rgba(28,25,23,0.04)',
+                        'focus': '0 0 0 3px rgba(237,169,33,0.25)',
+                    },
+                },
+            },
         }
     </script>
-    <!-- Plotly.js -->
-    <script src="https://cdn.plot.ly/plotly-2.32.0.min.js"></script>
+    <!-- Plotly.js (deferred) -->
+    <script src="https://cdn.plot.ly/plotly-2.32.0.min.js" defer></script>
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'css/custom.css' %}">
     <style type="text/tailwindcss">
+        /* ── Surface tokens ── */
+        .surface-base   { @apply bg-canvas-50; }
+        .surface-raised { @apply bg-white; }
+        .surface-inset  { @apply bg-canvas-100; }
+
+        /* ── Form controls ── */
         .form-input {
-            @apply w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm 
-                   focus:outline-none focus:ring-2 focus:ring-solar-500 focus:border-solar-500
-                   text-sm transition-colors;
+            @apply w-full px-3 py-2.5 bg-canvas-100 border border-canvas-200 rounded-lg
+                   text-sm text-ink-900 placeholder:text-ink-500
+                   focus:outline-none focus:ring-2 focus:ring-solar-500/30 focus:border-solar-500
+                   transition-all duration-150;
         }
         .form-select {
-            @apply w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm 
-                   focus:outline-none focus:ring-2 focus:ring-solar-500 focus:border-solar-500
-                   text-sm bg-white transition-colors;
+            @apply w-full px-3 py-2.5 bg-canvas-100 border border-canvas-200 rounded-lg
+                   text-sm text-ink-900
+                   focus:outline-none focus:ring-2 focus:ring-solar-500/30 focus:border-solar-500
+                   transition-all duration-150 appearance-none
+                   bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2220%22%20height%3D%2220%22%20fill%3D%22none%22%20stroke%3D%22%2378716c%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%20stroke-width%3D%221.5%22%3E%3Cpath%20d%3D%22m6%208%204%204%204-4%22%2F%3E%3C%2Fsvg%3E')]
+                   bg-[position:right_0.5rem_center] bg-[length:1.25rem_1.25rem] bg-no-repeat pr-8;
         }
         .form-checkbox {
-            @apply h-4 w-4 text-solar-600 border-gray-300 rounded 
-                   focus:ring-solar-500 transition-colors;
+            @apply h-4 w-4 text-solar-600 border-canvas-300 rounded
+                   focus:ring-solar-500/30 transition-colors cursor-pointer;
         }
+        .form-label {
+            @apply block text-sm font-medium text-ink-800 mb-1.5;
+        }
+
+        /* ── Buttons ── */
         .btn-primary {
-            @apply inline-flex items-center px-4 py-2 bg-solar-600 text-white font-medium 
-                   rounded-lg hover:bg-solar-700 focus:outline-none focus:ring-2 
-                   focus:ring-solar-500 focus:ring-offset-2 transition-colors text-sm;
+            @apply inline-flex items-center justify-center gap-2 px-4 py-2.5
+                   bg-solar-600 text-white font-semibold rounded-lg text-sm
+                   hover:bg-solar-700 active:bg-solar-800
+                   focus:outline-none focus:ring-2 focus:ring-solar-500/30 focus:ring-offset-2
+                   transition-all duration-150 shadow-xs;
         }
         .btn-secondary {
-            @apply inline-flex items-center px-4 py-2 bg-gray-200 text-gray-700 font-medium 
-                   rounded-lg hover:bg-gray-300 focus:outline-none focus:ring-2 
-                   focus:ring-gray-400 focus:ring-offset-2 transition-colors text-sm;
+            @apply inline-flex items-center justify-center gap-2 px-4 py-2.5
+                   bg-white text-ink-800 font-medium rounded-lg text-sm
+                   border border-canvas-200
+                   hover:bg-canvas-50 hover:border-canvas-300 active:bg-canvas-100
+                   focus:outline-none focus:ring-2 focus:ring-solar-500/20 focus:ring-offset-2
+                   transition-all duration-150 shadow-xs;
         }
         .btn-danger {
-            @apply inline-flex items-center px-4 py-2 bg-red-600 text-white font-medium 
-                   rounded-lg hover:bg-red-700 focus:outline-none focus:ring-2 
-                   focus:ring-red-500 focus:ring-offset-2 transition-colors text-sm;
+            @apply inline-flex items-center justify-center gap-2 px-4 py-2.5
+                   bg-red-600 text-white font-semibold rounded-lg text-sm
+                   hover:bg-red-700 active:bg-red-800
+                   focus:outline-none focus:ring-2 focus:ring-red-500/30 focus:ring-offset-2
+                   transition-all duration-150 shadow-xs;
         }
         .btn-success {
-            @apply inline-flex items-center px-4 py-2 bg-green-600 text-white font-medium 
-                   rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 
-                   focus:ring-green-500 focus:ring-offset-2 transition-colors text-sm;
+            @apply inline-flex items-center justify-center gap-2 px-4 py-2.5
+                   bg-emerald-600 text-white font-semibold rounded-lg text-sm
+                   hover:bg-emerald-700 active:bg-emerald-800
+                   focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:ring-offset-2
+                   transition-all duration-150 shadow-xs;
         }
+        .btn-ghost {
+            @apply inline-flex items-center justify-center gap-2 px-3 py-2
+                   text-ink-600 font-medium rounded-lg text-sm
+                   hover:bg-canvas-100 hover:text-ink-900
+                   focus:outline-none focus:ring-2 focus:ring-solar-500/20
+                   transition-all duration-150;
+        }
+
+        /* ── Card surfaces ── */
         .card {
-            @apply bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden;
+            @apply bg-white rounded-xl border border-canvas-200/80 shadow-xs overflow-hidden;
         }
         .stat-card {
-            @apply bg-white rounded-xl shadow-sm border border-gray-200 p-6 
-                   hover:shadow-md transition-shadow;
+            @apply bg-white rounded-xl border border-canvas-200/80 shadow-xs p-5
+                   hover:shadow-sm transition-shadow duration-200;
         }
+
+        /* ── Sidebar ── */
         .sidebar-link {
-            @apply flex items-center gap-3 px-4 py-2.5 text-gray-600 rounded-lg 
-                   hover:bg-solar-50 hover:text-solar-700 transition-colors text-sm font-medium;
+            @apply flex items-center gap-3 px-3 py-2.5 text-ink-600 rounded-lg
+                   hover:bg-canvas-100 hover:text-ink-900
+                   transition-all duration-150 text-[0.8125rem] font-medium;
         }
         .sidebar-link.active {
-            @apply bg-solar-100 text-solar-800 font-semibold;
+            @apply bg-solar-50 text-solar-800 font-semibold border-l-[3px] border-solar-500
+                   pl-[9px];
         }
+        .sidebar-link .sidebar-icon {
+            @apply w-5 h-5 flex items-center justify-center text-[0.875rem] flex-shrink-0;
+        }
+        .sidebar-link.active .sidebar-icon {
+            @apply text-solar-600;
+        }
+
+        /* ── Badge variants ── */
+        .badge {
+            @apply inline-flex items-center px-2 py-0.5 rounded-md text-xs font-semibold tracking-wide;
+        }
+        .badge-amber   { @apply bg-amber-50 text-amber-700 ring-1 ring-inset ring-amber-600/10; }
+        .badge-blue    { @apply bg-sky-50 text-sky-700 ring-1 ring-inset ring-sky-600/10; }
+        .badge-green   { @apply bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-600/10; }
+        .badge-red     { @apply bg-red-50 text-red-700 ring-1 ring-inset ring-red-600/10; }
+        .badge-purple  { @apply bg-violet-50 text-violet-700 ring-1 ring-inset ring-violet-600/10; }
+        .badge-gray    { @apply bg-canvas-100 text-ink-600 ring-1 ring-inset ring-canvas-300/60; }
+        .badge-orange  { @apply bg-orange-50 text-orange-700 ring-1 ring-inset ring-orange-600/10; }
+
+        /* ── Data label (key + value pairs) ── */
+        .data-label {
+            @apply text-xs font-medium text-ink-500 uppercase tracking-wider;
+        }
+        .data-value {
+            @apply text-sm font-semibold text-ink-900 mt-0.5;
+        }
+
+        /* ── Table ── */
+        .table-header {
+            @apply px-4 py-3 text-left text-xs font-semibold text-ink-500 uppercase tracking-wider;
+        }
+        .table-cell {
+            @apply px-4 py-3.5 text-sm text-ink-800;
+        }
+
+        /* ── Transitions ── */
+        .transition-base { @apply transition-all duration-150 ease-out; }
     </style>
     {% block extra_css %}{% endblock %}
 </head>
-<body class="h-full">
+<body class="h-full font-sans text-ink-900 antialiased surface-base">
     {% if user.is_authenticated %}
     <div class="min-h-full flex">
-        <!-- Sidebar -->
-        <aside class="hidden lg:flex lg:flex-col lg:w-64 lg:fixed lg:inset-y-0 bg-white border-r border-gray-200">
-            <!-- Logo -->
-            <div class="flex items-center gap-3 px-6 py-5 border-b border-gray-200">
-                {% if company_settings and company_settings.logo %}
-                <img src="{{ company_settings.logo.url }}" alt="Logo" class="w-10 h-10 rounded-lg object-contain">
-                {% else %}
-                <div class="w-10 h-10 bg-solar-500 rounded-lg flex items-center justify-center">
-                    <i class="fas fa-sun text-white text-xl"></i>
-                </div>
-                {% endif %}
-                <div>
-                    <h1 class="text-lg font-bold text-gray-900">{{ company_settings.name|default:'SolarQuote' }}</h1>
-                    <p class="text-xs text-gray-500">{{ company_settings.slogan|default:'Herramienta de cotización' }}</p>
+
+        <!-- ═══ Sidebar ═══ -->
+        <aside id="sidebar" class="
+            fixed inset-y-0 left-0 z-40 w-64 bg-white border-r border-canvas-200/80
+            transform -translate-x-full lg:translate-x-0
+            transition-transform duration-200 ease-out
+            flex flex-col
+        " role="navigation" aria-label="Navegación principal">
+
+            <!-- Brand bar with solar gradient accent -->
+            <div class="relative px-5 py-4 border-b border-canvas-200/60">
+                <div class="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-solar-500 via-amber-400 to-solar-300"></div>
+                <div class="flex items-center gap-3 mt-0.5">
+                    {% if company_settings and company_settings.logo %}
+                    <img src="{{ company_settings.logo.url }}" alt="Logo" class="w-9 h-9 rounded-lg object-contain">
+                    {% else %}
+                    <div class="w-9 h-9 bg-gradient-to-br from-solar-500 to-amber-400 rounded-lg flex items-center justify-center shadow-sm">
+                        <i class="fas fa-sun text-white text-base"></i>
+                    </div>
+                    {% endif %}
+                    <div class="min-w-0">
+                        <h1 class="text-sm font-bold text-ink-950 truncate leading-tight">{{ company_settings.name|default:'SolarQuote' }}</h1>
+                        <p class="text-[0.6875rem] text-ink-500 truncate">{{ company_settings.slogan|default:'Cotización solar' }}</p>
+                    </div>
                 </div>
             </div>
 
-            <!-- Navigation -->
-            <nav class="flex-1 px-4 py-4 space-y-1 overflow-y-auto">
-                <a href="{% url 'dashboard' %}" class="sidebar-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
-                    <i class="fas fa-chart-line w-5"></i> Dashboard
+            <!-- Navigation links -->
+            <nav class="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto" aria-label="Menú principal">
+                <a href="{% url 'dashboard' %}" class="sidebar-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}" {% if request.resolver_match.url_name == 'dashboard' %}aria-current="page"{% endif %}>
+                    <span class="sidebar-icon"><i class="fas fa-chart-line"></i></span> Dashboard
                 </a>
-                <a href="{% url 'cliente_list' %}" class="sidebar-link {% if 'cliente' in request.resolver_match.url_name %}active{% endif %}">
-                    <i class="fas fa-users w-5"></i> Clientes
+                <a href="{% url 'cliente_list' %}" class="sidebar-link {% if 'cliente' in request.resolver_match.url_name %}active{% endif %}" {% if 'cliente' in request.resolver_match.url_name %}aria-current="page"{% endif %}>
+                    <span class="sidebar-icon"><i class="fas fa-users"></i></span> Clientes
                 </a>
-                <a href="{% url 'proyecto_list' %}" class="sidebar-link {% if 'proyecto' in request.resolver_match.url_name %}active{% endif %}">
-                    <i class="fas fa-solar-panel w-5"></i> Proyectos
+                <a href="{% url 'proyecto_list' %}" class="sidebar-link {% if 'proyecto' in request.resolver_match.url_name %}active{% endif %}" {% if 'proyecto' in request.resolver_match.url_name %}aria-current="page"{% endif %}>
+                    <span class="sidebar-icon"><i class="fas fa-solar-panel"></i></span> Proyectos
                 </a>
-                <a href="{% url 'equipo_list' %}" class="sidebar-link {% if 'equipo' in request.resolver_match.url_name %}active{% endif %}">
-                    <i class="fas fa-boxes-stacked w-5"></i> Inventario
+                <a href="{% url 'equipo_list' %}" class="sidebar-link {% if 'equipo' in request.resolver_match.url_name %}active{% endif %}" {% if 'equipo' in request.resolver_match.url_name %}aria-current="page"{% endif %}>
+                    <span class="sidebar-icon"><i class="fas fa-boxes-stacked"></i></span> Inventario
                 </a>
-                <a href="{% url 'cargatipo_list' %}" class="sidebar-link {% if 'cargatipo' in request.resolver_match.url_name %}active{% endif %}">
-                    <i class="fas fa-bolt w-5"></i> Cargas
+                <a href="{% url 'cargatipo_list' %}" class="sidebar-link {% if 'cargatipo' in request.resolver_match.url_name %}active{% endif %}" {% if 'cargatipo' in request.resolver_match.url_name %}aria-current="page"{% endif %}>
+                    <span class="sidebar-icon"><i class="fas fa-bolt"></i></span> Cargas
                 </a>
-                <a href="{% url 'cotizacion_list' %}" class="sidebar-link {% if 'cotizacion' in request.resolver_match.url_name %}active{% endif %}">
-                    <i class="fas fa-file-invoice-dollar w-5"></i> Cotizaciones
+                <a href="{% url 'cotizacion_list' %}" class="sidebar-link {% if 'cotizacion' in request.resolver_match.url_name %}active{% endif %}" {% if 'cotizacion' in request.resolver_match.url_name %}aria-current="page"{% endif %}>
+                    <span class="sidebar-icon"><i class="fas fa-file-invoice-dollar"></i></span> Cotizaciones
                 </a>
 
                 {% if user.is_admin_role or user.is_superuser %}
-                <div class="pt-4 mt-4 border-t border-gray-200">
-                    <p class="px-4 text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Admin</p>
-                    <a href="{% url 'user_list' %}" class="sidebar-link">
-                        <i class="fas fa-user-shield w-5"></i> Usuarios
+                <div class="pt-4 mt-4 border-t border-canvas-200/60">
+                    <p class="px-3 text-[0.625rem] font-bold text-ink-400 uppercase tracking-[0.08em] mb-2">Administración</p>
+                    <a href="{% url 'user_list' %}" class="sidebar-link {% if 'user' in request.resolver_match.url_name %}active{% endif %}">
+                        <span class="sidebar-icon"><i class="fas fa-user-shield"></i></span> Usuarios
                     </a>
                     <a href="{% url 'company_settings' %}" class="sidebar-link {% if request.resolver_match.url_name == 'company_settings' %}active{% endif %}">
-                        <i class="fas fa-sliders-h w-5"></i> Configuración
+                        <span class="sidebar-icon"><i class="fas fa-sliders-h"></i></span> Configuración
                     </a>
-                    <a href="{% url 'admin:index' %}" class="sidebar-link">
-                        <i class="fas fa-cog w-5"></i> Admin Django
+                    <a href="{% url 'admin:index' %}" class="sidebar-link" target="_blank" rel="noopener">
+                        <span class="sidebar-icon"><i class="fas fa-cog"></i></span> Admin Django
                     </a>
                 </div>
                 {% endif %}
             </nav>
 
-            <!-- User info -->
-            <div class="px-4 py-4 border-t border-gray-200">
-                <div class="flex items-center gap-3">
-                    <div class="w-9 h-9 bg-solar-100 rounded-full flex items-center justify-center">
-                        <i class="fas fa-user text-solar-600"></i>
+            <!-- User card -->
+            <div class="px-3 py-3 border-t border-canvas-200/60">
+                <div class="flex items-center gap-2.5 p-2 rounded-lg hover:bg-canvas-50 transition-base group">
+                    <div class="w-8 h-8 bg-solar-100 rounded-full flex items-center justify-center flex-shrink-0">
+                        <span class="text-xs font-bold text-solar-700">{{ user.first_name.0|default:user.username.0|upper }}</span>
                     </div>
                     <div class="flex-1 min-w-0">
-                        <p class="text-sm font-medium text-gray-900 truncate">
+                        <p class="text-[0.8125rem] font-semibold text-ink-900 truncate leading-tight">
                             {{ user.get_full_name|default:user.username }}
                         </p>
-                        <p class="text-xs text-gray-500">{{ user.get_role_display }}</p>
+                        <p class="text-[0.6875rem] text-ink-500">{{ user.get_role_display }}</p>
                     </div>
-                    <a href="{% url 'logout' %}" class="text-gray-400 hover:text-red-500 transition-colors" title="Cerrar sesión">
-                        <i class="fas fa-sign-out-alt"></i>
+                    <a href="{% url 'logout' %}" class="p-1.5 rounded-md text-ink-400 hover:text-red-500 hover:bg-red-50 transition-base" title="Cerrar sesión" aria-label="Cerrar sesión">
+                        <i class="fas fa-sign-out-alt text-sm"></i>
                     </a>
                 </div>
             </div>
         </aside>
 
-        <!-- Main Content -->
-        <main class="flex-1 lg:ml-64">
-            <!-- Mobile header -->
-            <div class="lg:hidden sticky top-0 z-10 bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
-                <div class="flex items-center gap-2">
-                    {% if company_settings and company_settings.logo %}
-                    <img src="{{ company_settings.logo.url }}" alt="Logo" class="h-6 w-auto">
-                    {% else %}
-                    <i class="fas fa-sun text-solar-500 text-xl"></i>
-                    {% endif %}
-                    <span class="font-bold text-gray-900">{{ company_settings.name|default:'SolarQuote' }}</span>
-                </div>
-                <button onclick="document.getElementById('mobile-menu').classList.toggle('hidden')" class="text-gray-500">
-                    <i class="fas fa-bars text-xl"></i>
-                </button>
-            </div>
-            <!-- Mobile menu -->
-            <div id="mobile-menu" class="hidden lg:hidden bg-white border-b border-gray-200 px-4 py-2">
-                <a href="{% url 'dashboard' %}" class="block py-2 text-sm text-gray-700 hover:text-solar-600">Dashboard</a>
-                <a href="{% url 'cliente_list' %}" class="block py-2 text-sm text-gray-700 hover:text-solar-600">Clientes</a>
-                <a href="{% url 'proyecto_list' %}" class="block py-2 text-sm text-gray-700 hover:text-solar-600">Proyectos</a>
-                <a href="{% url 'equipo_list' %}" class="block py-2 text-sm text-gray-700 hover:text-solar-600">Inventario</a>
-                <a href="{% url 'cargatipo_list' %}" class="block py-2 text-sm text-gray-700 hover:text-solar-600">Cargas</a>
-                <a href="{% url 'cotizacion_list' %}" class="block py-2 text-sm text-gray-700 hover:text-solar-600">Cotizaciones</a>
-                <a href="{% url 'logout' %}" class="block py-2 text-sm text-red-600">Cerrar sesión</a>
-            </div>
+        <!-- Sidebar backdrop (mobile) -->
+        <div id="sidebar-backdrop" class="fixed inset-0 bg-ink-950/30 backdrop-blur-sm z-30 hidden lg:hidden" aria-hidden="true"></div>
 
-            <!-- Messages -->
-            {% if messages %}
-            <div class="px-6 pt-4">
-                {% for message in messages %}
-                <div class="mb-2 p-4 rounded-lg text-sm {% if message.tags == 'success' %}bg-green-50 text-green-800 border border-green-200{% elif message.tags == 'error' %}bg-red-50 text-red-800 border border-red-200{% elif message.tags == 'warning' %}bg-yellow-50 text-yellow-800 border border-yellow-200{% else %}bg-blue-50 text-blue-800 border border-blue-200{% endif %}">
-                    <div class="flex items-center justify-between">
-                        <span>{{ message }}</span>
-                        <button onclick="this.parentElement.parentElement.remove()" class="text-gray-400 hover:text-gray-600">
-                            <i class="fas fa-times"></i>
-                        </button>
+        <!-- ═══ Main Content ═══ -->
+        <main class="flex-1 lg:ml-64 min-h-screen flex flex-col" role="main">
+
+            <!-- Top bar (mobile) -->
+            <header class="lg:hidden sticky top-0 z-20 bg-white/95 backdrop-blur-sm border-b border-canvas-200/60 px-4 py-3 flex items-center justify-between">
+                <div class="flex items-center gap-2.5">
+                    {% if company_settings and company_settings.logo %}
+                    <img src="{{ company_settings.logo.url }}" alt="Logo" class="h-7 w-auto">
+                    {% else %}
+                    <div class="w-7 h-7 bg-gradient-to-br from-solar-500 to-amber-400 rounded-md flex items-center justify-center">
+                        <i class="fas fa-sun text-white text-xs"></i>
                     </div>
+                    {% endif %}
+                    <span class="font-bold text-ink-900 text-sm">{{ company_settings.name|default:'SolarQuote' }}</span>
+                </div>
+                <button id="sidebar-toggle" class="p-2 -mr-2 rounded-lg text-ink-500 hover:bg-canvas-100 transition-base" aria-label="Abrir menú" aria-expanded="false" aria-controls="sidebar">
+                    <i class="fas fa-bars text-lg"></i>
+                </button>
+            </header>
+
+            <!-- Flash messages -->
+            {% if messages %}
+            <div class="px-4 sm:px-6 lg:px-8 pt-4" role="alert">
+                {% for message in messages %}
+                <div class="mb-2 flex items-start gap-3 p-3.5 rounded-lg text-sm border
+                    {% if message.tags == 'success' %}bg-emerald-50 text-emerald-800 border-emerald-200/60
+                    {% elif message.tags == 'error' %}bg-red-50 text-red-800 border-red-200/60
+                    {% elif message.tags == 'warning' %}bg-amber-50 text-amber-800 border-amber-200/60
+                    {% else %}bg-sky-50 text-sky-800 border-sky-200/60{% endif %}">
+                    <i class="fas {% if message.tags == 'success' %}fa-check-circle text-emerald-500{% elif message.tags == 'error' %}fa-exclamation-circle text-red-500{% elif message.tags == 'warning' %}fa-exclamation-triangle text-amber-500{% else %}fa-info-circle text-sky-500{% endif %} mt-0.5"></i>
+                    <span class="flex-1">{{ message }}</span>
+                    <button onclick="this.parentElement.remove()" class="p-0.5 rounded hover:bg-black/5 transition-base ml-2 flex-shrink-0" aria-label="Cerrar notificación">
+                        <i class="fas fa-times text-xs opacity-50"></i>
+                    </button>
                 </div>
                 {% endfor %}
             </div>
             {% endif %}
 
-            <!-- Page Content -->
-            <div class="px-6 py-6">
+            <!-- Page content -->
+            <div class="flex-1 px-4 sm:px-6 lg:px-8 py-6">
                 {% block content %}{% endblock %}
             </div>
         </main>
     </div>
+
+    <!-- Sidebar toggle script -->
+    <script>
+    (function() {
+        const sidebar = document.getElementById('sidebar');
+        const backdrop = document.getElementById('sidebar-backdrop');
+        const toggle = document.getElementById('sidebar-toggle');
+        function open() {
+            sidebar.classList.remove('-translate-x-full');
+            backdrop.classList.remove('hidden');
+            toggle.setAttribute('aria-expanded', 'true');
+            document.body.style.overflow = 'hidden';
+        }
+        function close() {
+            sidebar.classList.add('-translate-x-full');
+            backdrop.classList.add('hidden');
+            toggle.setAttribute('aria-expanded', 'false');
+            document.body.style.overflow = '';
+        }
+        if (toggle) toggle.addEventListener('click', function() {
+            sidebar.classList.contains('-translate-x-full') ? open() : close();
+        });
+        if (backdrop) backdrop.addEventListener('click', close);
+        document.addEventListener('keydown', function(e) { if (e.key === 'Escape') close(); });
+    })();
+    </script>
+
     {% else %}
         {% block auth_content %}{% endblock %}
     {% endif %}

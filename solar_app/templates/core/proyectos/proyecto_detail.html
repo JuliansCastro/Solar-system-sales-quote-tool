@@ -4,51 +4,51 @@
 
 {% block content %}
 <div class="mb-6">
-    <a href="{% url 'proyecto_list' %}" class="text-sm text-gray-500 hover:text-solar-600">
+    <a href="{% url 'proyecto_list' %}" class="text-sm text-ink-400 hover:text-solar-600 transition-base">
         <i class="fas fa-arrow-left mr-1"></i> Volver a proyectos
     </a>
 </div>
 
 <!-- Header -->
-<div class="flex flex-col md:flex-row md:items-start md:justify-between mb-6">
+<div class="flex flex-col md:flex-row md:items-start md:justify-between gap-4 mb-6">
     <div>
         <div class="flex items-center gap-3">
-            <h1 class="text-2xl font-bold text-gray-900">{{ proyecto.nombre }}</h1>
-            <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium
-                {% if proyecto.tipo_sistema == 'on_grid' %}bg-blue-100 text-blue-700
-                {% elif proyecto.tipo_sistema == 'off_grid' %}bg-orange-100 text-orange-700
-                {% else %}bg-purple-100 text-purple-700{% endif %}">
+            <h1 class="text-2xl font-extrabold text-ink-950 tracking-tight">{{ proyecto.nombre }}</h1>
+            <span class="badge
+                {% if proyecto.tipo_sistema == 'on_grid' %}badge-blue
+                {% elif proyecto.tipo_sistema == 'off_grid' %}badge-orange
+                {% else %}badge-purple{% endif %}">
                 {{ proyecto.get_tipo_sistema_display }}
             </span>
         </div>
-        <p class="text-sm text-gray-500 mt-1">
+        <p class="text-sm text-ink-400 mt-1">
             <span class="font-mono">{{ proyecto.codigo }}</span> · 
-            Cliente: <a href="{% url 'cliente_detail' proyecto.cliente.pk %}" class="text-solar-600 hover:underline">{{ proyecto.cliente.nombre }}</a>
+            Cliente: <a href="{% url 'cliente_detail' proyecto.cliente.pk %}" class="text-solar-600 hover:text-solar-700 transition-base">{{ proyecto.cliente.nombre }}</a>
         </p>
     </div>
-    <div class="mt-4 md:mt-0 flex flex-wrap gap-2">
+    <div class="flex flex-wrap gap-2">
         <a href="{% url 'proyecto_update' proyecto.pk %}" class="btn-secondary text-sm">
-            <i class="fas fa-edit mr-1"></i> Editar
+            <i class="fas fa-edit text-xs"></i> Editar
         </a>
         <a href="{% url 'proyecto_clonar' proyecto.pk %}" class="btn-secondary text-sm"
            onclick="return confirm('¿Deseas clonar este proyecto?')">
-            <i class="fas fa-copy mr-1"></i> Clonar
+            <i class="fas fa-copy text-xs"></i> Clonar
         </a>
         {% if proyecto.tipo_sistema != 'on_grid' %}
         <a href="{% url 'proyecto_cargas' proyecto.pk %}" class="btn-secondary text-sm">
-            <i class="fas fa-bolt mr-1"></i> Cargas
+            <i class="fas fa-bolt text-xs"></i> Cargas
         </a>
         {% endif %}
         <a href="{% url 'proyecto_delete' proyecto.pk %}" class="btn-danger text-sm"
            onclick="return confirm('¿Estás seguro de que deseas eliminar este proyecto?')">
-            <i class="fas fa-trash mr-1"></i> Eliminar
+            <i class="fas fa-trash text-xs"></i> Eliminar
         </a>
         <a href="{% url 'proyecto_dimensionar' proyecto.pk %}" class="btn-primary text-sm">
-            <i class="fas fa-calculator mr-1"></i> Dimensionar
+            <i class="fas fa-calculator text-xs"></i> Dimensionar
         </a>
         {% if proyecto.potencia_pico_kwp %}
         <a href="{% url 'cotizacion_crear_desde_proyecto' proyecto.pk %}" class="btn-success text-sm">
-            <i class="fas fa-file-invoice-dollar mr-1"></i> Generar Cotización
+            <i class="fas fa-file-invoice-dollar text-xs"></i> Generar Cotización
         </a>
         {% endif %}
     </div>
@@ -61,15 +61,15 @@
         <div class="flex items-center gap-2 whitespace-nowrap">
             <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold
                 {% if proyecto.estado == estado_val %}bg-solar-500 text-white
-                {% elif forloop.counter0 < proyecto.Estado.values|length %}bg-gray-200 text-gray-500
-                {% else %}bg-gray-100 text-gray-400{% endif %}">
+                {% elif forloop.counter0 < proyecto.Estado.values|length %}bg-canvas-200 text-ink-400
+                {% else %}bg-canvas-100 text-ink-300{% endif %}">
                 {{ forloop.counter }}
             </div>
-            <span class="text-xs {% if proyecto.estado == estado_val %}text-solar-700 font-semibold{% else %}text-gray-400{% endif %}">
+            <span class="text-xs {% if proyecto.estado == estado_val %}text-solar-700 font-semibold{% else %}text-ink-400{% endif %}">
                 {{ estado_label }}
             </span>
             {% if not forloop.last %}
-            <i class="fas fa-chevron-right text-gray-300 text-xs mx-1"></i>
+            <i class="fas fa-chevron-right text-ink-300 text-xs mx-1"></i>
             {% endif %}
         </div>
         {% endfor %}
@@ -81,44 +81,44 @@
     <div class="lg:col-span-2 space-y-6">
         <!-- Client & Location -->
         <div class="card p-6">
-            <h3 class="text-lg font-semibold text-gray-800 mb-4">Datos del cliente y ubicación</h3>
+            <h3 class="text-lg font-semibold text-ink-800 mb-4">Datos del cliente y ubicación</h3>
             <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {% if proyecto.consumo_mensual_factura_kwh %}
                 <div>
-                    <p class="text-xs text-gray-500">Consumo factura (mensual)</p>
-                    <p class="text-sm font-semibold text-solar-700">{{ proyecto.consumo_mensual_factura_kwh }} kWh</p>
+                    <p class="data-label">Consumo factura (mensual)</p>
+                    <p class="text-sm font-semibold font-mono text-solar-700">{{ proyecto.consumo_mensual_factura_kwh }} kWh</p>
                 </div>
                 <div>
-                    <p class="text-xs text-gray-500">Consumo diario (factura)</p>
-                    <p class="text-sm font-semibold text-solar-700">{{ proyecto.consumo_diario_kwh }} kWh/día</p>
+                    <p class="data-label">Consumo diario (factura)</p>
+                    <p class="text-sm font-semibold font-mono text-solar-700">{{ proyecto.consumo_diario_kwh }} kWh/día</p>
                 </div>
                 {% endif %}
                 <div>
-                    <p class="text-xs text-gray-500">Consumo mensual {% if proyecto.consumo_mensual_factura_kwh %}(cliente){% endif %}</p>
-                    <p class="text-sm font-semibold">{{ proyecto.cliente.consumo_mensual_kwh }} kWh</p>
+                    <p class="data-label">Consumo mensual {% if proyecto.consumo_mensual_factura_kwh %}(cliente){% endif %}</p>
+                    <p class="text-sm font-semibold font-mono">{{ proyecto.cliente.consumo_mensual_kwh }} kWh</p>
                 </div>
                 <div>
-                    <p class="text-xs text-gray-500">Tarifa</p>
-                    <p class="text-sm font-semibold">${{ proyecto.cliente.tarifa_electrica|floatformat:0|intcomma }}/kWh</p>
+                    <p class="data-label">Tarifa</p>
+                    <p class="text-sm font-semibold font-mono">${{ proyecto.cliente.tarifa_electrica|floatformat:0|intcomma }}/kWh</p>
                 </div>
                 <div>
-                    <p class="text-xs text-gray-500">Gasto mensual</p>
-                    <p class="text-sm font-semibold text-red-600">${{ proyecto.cliente.gasto_mensual|floatformat:0|intcomma }}</p>
+                    <p class="data-label">Gasto mensual</p>
+                    <p class="text-sm font-semibold font-mono text-red-600">${{ proyecto.cliente.gasto_mensual|floatformat:0|intcomma }}</p>
                 </div>
                 <div>
-                    <p class="text-xs text-gray-500">HSP promedio</p>
-                    <p class="text-sm font-semibold"><span id="hsp-value">{{ proyecto.hsp_promedio }}</span> h/día</p>
+                    <p class="data-label">HSP promedio</p>
+                    <p class="text-sm font-semibold font-mono"><span id="hsp-value">{{ proyecto.hsp_promedio }}</span> h/día</p>
                     <script>
                         document.getElementById('hsp-value').textContent = parseFloat(document.getElementById('hsp-value').textContent).toFixed(2);
                     </script>
                 </div>
                 <div>
-                    <p class="text-xs text-gray-500">Latitud</p>
-                    <p class="text-sm font-semibold">{{ proyecto.latitud }}</p>
+                    <p class="data-label">Latitud</p>
+                    <p class="text-sm font-semibold font-mono">{{ proyecto.latitud }}</p>
                 </div>
                 <div>
-                    <p class="text-xs text-gray-500">Longitud</p>
-                    <p class="text-sm font-semibold">{{ proyecto.longitud }}</p>
+                    <p class="data-label">Longitud</p>
+                    <p class="text-sm font-semibold font-mono">{{ proyecto.longitud }}</p>
                 </div>
             </div>
         </div>
@@ -126,36 +126,36 @@
         <!-- Sizing Results -->
         {% if proyecto.potencia_pico_kwp %}
         <div class="card p-6">
-            <h3 class="text-lg font-semibold text-gray-800 mb-4">
-                <i class="fas fa-calculator text-solar-500 mr-2"></i>Resultado del dimensionamiento
+            <h3 class="text-lg font-semibold text-ink-800 mb-4">
+                <i class="fas fa-calculator text-solar-500 mr-1"></i>Resultado del dimensionamiento
             </h3>
             <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div class="stat-card text-center bg-solar-50">
-                    <p class="text-2xl font-bold text-solar-600">{{ proyecto.potencia_pico_kwp }}</p>
-                    <p class="text-xs text-gray-500">kWp instalados</p>
+                    <p class="text-2xl font-extrabold font-mono text-solar-600">{{ proyecto.potencia_pico_kwp }}</p>
+                    <p class="text-xs text-ink-500">kWp instalados</p>
                 </div>
                 <div class="stat-card text-center">
-                    <p class="text-2xl font-bold text-gray-900">{{ proyecto.numero_paneles }}</p>
-                    <p class="text-xs text-gray-500">Paneles</p>
+                    <p class="text-2xl font-extrabold font-mono text-ink-900">{{ proyecto.numero_paneles }}</p>
+                    <p class="text-xs text-ink-500">Paneles</p>
                 </div>
                 <div class="stat-card text-center">
-                    <p class="text-2xl font-bold text-green-600">{{ proyecto.generacion_mensual_kwh|floatformat:0 }}</p>
-                    <p class="text-xs text-gray-500">kWh/mes generados</p>
+                    <p class="text-2xl font-extrabold font-mono text-green-600">{{ proyecto.generacion_mensual_kwh|floatformat:0 }}</p>
+                    <p class="text-xs text-ink-500">kWh/mes generados</p>
                 </div>
                 {% if proyecto.porcentaje_cobertura %}
                 <div class="stat-card text-center">
-                    <p class="text-2xl font-bold text-blue-600">{{ proyecto.porcentaje_cobertura|floatformat:0 }}%</p>
-                    <p class="text-xs text-gray-500">Cobertura solar</p>
+                    <p class="text-2xl font-extrabold font-mono text-blue-600">{{ proyecto.porcentaje_cobertura|floatformat:0 }}%</p>
+                    <p class="text-xs text-ink-500">Cobertura solar</p>
                 </div>
                 {% endif %}
             </div>
 
             {% if proyecto.capacidad_baterias_kwh %}
-            <div class="mt-4 p-4 bg-orange-50 rounded-lg border border-orange-200">
+            <div class="mt-4 p-4 bg-orange-50 rounded-soft border border-orange-200">
                 <h4 class="text-sm font-semibold text-orange-800 mb-2">
                     <i class="fas fa-battery-full mr-1"></i> Banco de baterías
                 </h4>
-                <p class="text-sm text-orange-700">
+                <p class="text-sm text-orange-700 font-mono">
                     Capacidad: {{ proyecto.capacidad_baterias_kwh }} kWh ·
                     Autonomía: {{ proyecto.autonomia_dias }} días
                 </p>
@@ -167,35 +167,35 @@
         <!-- Loads (Off-grid) -->
         {% if cargas %}
         <div class="card">
-            <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-                <h3 class="text-lg font-semibold text-gray-800">Cargas eléctricas</h3>
-                <a href="{% url 'proyecto_cargas' proyecto.pk %}" class="text-sm text-solar-600 hover:underline">Editar</a>
+            <div class="px-6 py-4 border-b border-canvas-200 flex items-center justify-between">
+                <h3 class="text-lg font-semibold text-ink-800">Cargas eléctricas</h3>
+                <a href="{% url 'proyecto_cargas' proyecto.pk %}" class="text-sm text-solar-600 hover:text-solar-700 transition-base">Editar</a>
             </div>
             <div class="overflow-x-auto">
-                <table class="min-w-full divide-y divide-gray-200 text-sm">
-                    <thead class="bg-gray-50">
+                <table class="min-w-full text-sm" role="table">
+                    <thead class="surface-inset border-b border-canvas-200/60">
                         <tr>
-                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500">Dispositivo</th>
-                            <th class="px-4 py-2 text-center text-xs font-medium text-gray-500">Cant.</th>
-                            <th class="px-4 py-2 text-center text-xs font-medium text-gray-500">Potencia (W)</th>
-                            <th class="px-4 py-2 text-center text-xs font-medium text-gray-500">Horas/día</th>
-                            <th class="px-4 py-2 text-center text-xs font-medium text-gray-500">Energía (Wh/día)</th>
-                            <th class="px-4 py-2 text-center text-xs font-medium text-gray-500">Prioridad</th>
+                            <th class="table-header">Dispositivo</th>
+                            <th class="table-header text-center">Cant.</th>
+                            <th class="table-header text-center">Potencia (W)</th>
+                            <th class="table-header text-center">Horas/día</th>
+                            <th class="table-header text-center">Energía (Wh/día)</th>
+                            <th class="table-header text-center">Prioridad</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-gray-100">
+                    <tbody class="divide-y divide-canvas-100">
                         {% for carga in cargas %}
-                        <tr>
-                            <td class="px-4 py-2 font-medium">{{ carga.dispositivo }}</td>
-                            <td class="px-4 py-2 text-center">{{ carga.cantidad }}</td>
-                            <td class="px-4 py-2 text-center">{{ carga.potencia_nominal_w }}</td>
-                            <td class="px-4 py-2 text-center">{{ carga.horas_uso_dia }}</td>
-                            <td class="px-4 py-2 text-center font-semibold">{{ carga.energia_diaria_wh|floatformat:0 }}</td>
-                            <td class="px-4 py-2 text-center">
-                                <span class="px-2 py-0.5 rounded-full text-xs
-                                    {% if carga.prioridad == 'esencial' %}bg-red-100 text-red-700
-                                    {% elif carga.prioridad == 'importante' %}bg-yellow-100 text-yellow-700
-                                    {% else %}bg-gray-100 text-gray-600{% endif %}">
+                        <tr class="hover:bg-canvas-50 transition-base">
+                            <td class="table-cell font-medium text-ink-900">{{ carga.dispositivo }}</td>
+                            <td class="table-cell text-center">{{ carga.cantidad }}</td>
+                            <td class="table-cell text-center font-mono">{{ carga.potencia_nominal_w }}</td>
+                            <td class="table-cell text-center font-mono">{{ carga.horas_uso_dia }}</td>
+                            <td class="table-cell text-center font-mono font-semibold">{{ carga.energia_diaria_wh|floatformat:0 }}</td>
+                            <td class="table-cell text-center">
+                                <span class="badge
+                                    {% if carga.prioridad == 'esencial' %}badge-red
+                                    {% elif carga.prioridad == 'importante' %}badge-amber
+                                    {% else %}badge-gray{% endif %}">
                                     {{ carga.get_prioridad_display }}
                                 </span>
                             </td>
@@ -213,24 +213,24 @@
         <!-- Financial -->
         {% if proyecto.costo_total %}
         <div class="card p-6">
-            <h3 class="text-lg font-semibold text-gray-800 mb-4">
-                <i class="fas fa-coins text-solar-500 mr-2"></i>Resumen financiero
+            <h3 class="text-lg font-semibold text-ink-800 mb-4">
+                <i class="fas fa-coins text-solar-500 mr-1"></i>Resumen financiero
             </h3>
             <div class="space-y-3">
                 <div class="flex justify-between">
-                    <span class="text-sm text-gray-500">Inversión estimada</span>
-                    <span class="text-sm font-bold text-gray-900">${{ proyecto.costo_total|floatformat:0|intcomma }}</span>
+                    <span class="text-sm text-ink-500">Inversión estimada</span>
+                    <span class="text-sm font-extrabold font-mono text-ink-900">${{ proyecto.costo_total|floatformat:0|intcomma }}</span>
                 </div>
                 {% if proyecto.ahorro_mensual %}
                 <div class="flex justify-between">
-                    <span class="text-sm text-gray-500">Ahorro mensual</span>
-                    <span class="text-sm font-bold text-green-600">${{ proyecto.ahorro_mensual|floatformat:0|intcomma }}</span>
+                    <span class="text-sm text-ink-500">Ahorro mensual</span>
+                    <span class="text-sm font-extrabold font-mono text-green-600">${{ proyecto.ahorro_mensual|floatformat:0|intcomma }}</span>
                 </div>
                 {% endif %}
                 {% if proyecto.roi_anos %}
                 <div class="flex justify-between">
-                    <span class="text-sm text-gray-500">ROI</span>
-                    <span class="text-sm font-bold text-solar-600">{{ proyecto.roi_anos }} años</span>
+                    <span class="text-sm text-ink-500">ROI</span>
+                    <span class="text-sm font-extrabold font-mono text-solar-600">{{ proyecto.roi_anos }} años</span>
                 </div>
                 {% endif %}
             </div>
@@ -239,22 +239,22 @@
 
         <!-- Quotes -->
         <div class="card">
-            <div class="px-6 py-4 border-b border-gray-200">
-                <h3 class="text-lg font-semibold text-gray-800">Cotizaciones</h3>
+            <div class="px-6 py-4 border-b border-canvas-200">
+                <h3 class="text-lg font-semibold text-ink-800">Cotizaciones</h3>
             </div>
-            <div class="divide-y divide-gray-100">
+            <div class="divide-y divide-canvas-100">
                 {% for cot in cotizaciones %}
-                <a href="{% url 'cotizacion_detail' cot.pk %}" class="block px-6 py-3 hover:bg-gray-50">
+                <a href="{% url 'cotizacion_detail' cot.pk %}" class="block px-6 py-3 hover:bg-canvas-50 transition-base">
                     <div class="flex justify-between items-center">
                         <div>
-                            <p class="text-sm font-medium">{{ cot.numero }}</p>
-                            <p class="text-xs text-gray-400">{{ cot.fecha_emision|date:"d M Y" }}</p>
+                            <p class="text-sm font-semibold font-mono">{{ cot.numero }}</p>
+                            <p class="text-xs text-ink-400">{{ cot.fecha_emision|date:"d M Y" }}</p>
                         </div>
-                        <p class="text-sm font-bold">${{ cot.total|floatformat:0|intcomma }}</p>
+                        <p class="text-sm font-extrabold font-mono">${{ cot.total|floatformat:0|intcomma }}</p>
                     </div>
                 </a>
                 {% empty %}
-                <div class="px-6 py-6 text-center text-gray-400 text-sm">
+                <div class="px-6 py-6 text-center text-ink-400 text-sm">
                     Sin cotizaciones
                 </div>
                 {% endfor %}

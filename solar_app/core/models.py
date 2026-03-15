@@ -121,6 +121,47 @@ class CompanySettings(models.Model):
 
 
 # ──────────────────────────────────────────────
+# LOCATION MODELS (DEPARTAMENTO & MUNICIPIO)
+# ──────────────────────────────────────────────
+
+class Departamento(models.Model):
+    """Colombian departments."""
+
+    id_departamento = models.IntegerField(primary_key=True, verbose_name='ID')
+    nombre = models.CharField(max_length=255, verbose_name='Departamento')
+
+    class Meta:
+        verbose_name = 'Departamento'
+        verbose_name_plural = 'Departamentos'
+        ordering = ['nombre']
+
+    def __str__(self):
+        return self.nombre
+
+
+class Municipio(models.Model):
+    """Colombian municipalities."""
+
+    id_municipio = models.IntegerField(primary_key=True, verbose_name='ID')
+    nombre = models.CharField(max_length=255, verbose_name='Municipio')
+    departamento = models.ForeignKey(
+        Departamento,
+        on_delete=models.CASCADE,
+        related_name='municipios',
+        verbose_name='Departamento',
+    )
+    activo = models.BooleanField(default=True, verbose_name='Activo')
+
+    class Meta:
+        verbose_name = 'Municipio'
+        verbose_name_plural = 'Municipios'
+        ordering = ['nombre']
+
+    def __str__(self):
+        return f"{self.nombre} - {self.departamento.nombre}"
+
+
+# ──────────────────────────────────────────────
 # CLIENT MODEL
 # ──────────────────────────────────────────────
 
@@ -131,8 +172,22 @@ class Cliente(models.Model):
     email = models.EmailField(verbose_name='Correo electrónico')
     telefono = models.CharField(max_length=20, verbose_name='Teléfono')
     direccion = models.TextField(verbose_name='Dirección')
-    ciudad = models.CharField(max_length=100, verbose_name='Ciudad')
-    departamento = models.CharField(max_length=100, verbose_name='Departamento')
+    
+    # Location: ForeignKey to Municipio and Departamento
+    departamento = models.ForeignKey(
+        Departamento,
+        on_delete=models.CASCADE,
+        verbose_name='Departamento',
+        null=True,
+        blank=False,
+    )
+    municipio = models.ForeignKey(
+        Municipio,
+        on_delete=models.CASCADE,
+        verbose_name='Municipio',
+        null=True,
+        blank=False,
+    )
 
     # Energy consumption data
     consumo_mensual_kwh = models.FloatField(
@@ -167,7 +222,13 @@ class Cliente(models.Model):
         ordering = ['-fecha_creacion']
 
     def __str__(self):
-        return f"{self.nombre} - {self.ciudad}"
+        municipio_nombre = self.municipio.nombre if self.municipio else "Sin municipio"
+        return f"{self.nombre} - {municipio_nombre}"
+
+    @property
+    def ciudad(self):
+        """Backward compatibility property for ciudad field."""
+        return self.municipio.nombre if self.municipio else ""
 
     @property
     def gasto_mensual(self):
@@ -600,9 +661,9 @@ class Cotizacion(models.Model):
         blank=True, verbose_name='Condiciones y notas',
         default=(
             '• Precios sujetos a cambio sin previo aviso.\n'
-            '• Validez de la cotización: 30 días calendario.\n'
+            '• Validez de la cotización: 5 días calendario.\n'
             '• Garantía según fabricante de cada equipo.\n'
-            '• Tiempo de entrega: 5-15 días hábiles según disponibilidad.'
+            '• Tiempo de entrega: 1 - 5 días hábiles según disponibilidad.'
         ),
     )
 
@@ -628,18 +689,29 @@ class Cotizacion(models.Model):
         super().save(*args, **kwargs)
 
     def _generate_number(self):
-        prefix = 'COT'
-        date_part = timezone.now().strftime('%y%m')
+        # Prefix: primeros 3 caracteres del nombre del vendedor
+        if self.creado_por and self.creado_por.first_name:
+            prefix = self.creado_por.first_name[:3].upper()
+        elif self.creado_por:
+            prefix = self.creado_por.username[:3].upper()
+        else:
+            prefix = 'USR'
+        
+        # Date part: YYMMDD
+        date_part = timezone.now().strftime('%y%m%d')
+        search_pattern = f'{prefix}-{date_part}'
+        
         last = Cotizacion.objects.filter(
-            numero__startswith=f'{prefix}-{date_part}'
+            numero__startswith=search_pattern
         ).order_by('-numero').first()
+        
         if last:
             try:
                 last_num = int(last.numero.split('-')[-1])
             except (ValueError, IndexError):
                 last_num = 0
-            return f"{prefix}-{date_part}-{last_num + 1:04d}"
-        return f"{prefix}-{date_part}-0001"
+            return f"{prefix}-{date_part}-{last_num + 1:03d}"
+        return f"{prefix}-{date_part}-001"
 
     def calcular_totales(self):
         """Recalculate subtotal, discounts, tax, and total.
@@ -886,3 +958,221 @@ class Carga(models.Model):
         if self.factor_potencia > 0:
             return self.potencia_total_w / self.factor_potencia
         return self.potencia_total_w
+
+
+# ──────────────────────────────────────────────
+# EQUIPMENT SELECTION MODELS
+# ──────────────────────────────────────────────
+
+class SelectedEquipo(models.Model):
+    """Equipment selected for a specific project during sizing.
+    
+    Tracks which equipment (panels, inverters, etc.) the user has selected
+    for a project, allowing real-time recalculation of generation based on
+    actual equipment specs.
+    """
+
+    class TipoEquipo(models.TextChoices):
+        PANEL = 'panel', 'Panel Solar'
+        INVERSOR = 'inversor', 'Inversor'
+        ESTRUCTURA = 'estructura', 'Estructura'
+        REGULADOR = 'regulador', 'Regulador de carga'
+        BATERIA = 'bateria', 'Batería'
+        OTRO = 'otro', 'Otro'
+
+    # Relationships
+    proyecto = models.ForeignKey(
+        Proyecto, on_delete=models.CASCADE,
+        related_name='equipos_seleccionados', verbose_name='Proyecto',
+    )
+    equipo = models.ForeignKey(
+        Equipo, on_delete=models.PROTECT,
+        related_name='selecciones', verbose_name='Equipo',
+    )
+
+    # Selection details
+    tipo_equipo = models.CharField(
+        max_length=20, choices=TipoEquipo.choices,
+        verbose_name='Tipo de equipo',
+    )
+    cantidad = models.IntegerField(
+        verbose_name='Cantidad',
+        validators=[MinValueValidator(1)],
+        default=1,
+    )
+    notas = models.TextField(
+        blank=True, verbose_name='Notas',
+        help_text='Notas adicionales sobre esta selección',
+    )
+
+    # Calculated fields (cached)
+    perdidas_estimadas_porcentaje = models.FloatField(
+        null=True, blank=True, verbose_name='Pérdidas estimadas (%)',
+        help_text='Pérdidas estimadas basadas en especificaciones del equipo',
+    )
+    generacion_afectada_kwh = models.FloatField(
+        null=True, blank=True, verbose_name='Generación afectada (kWh)',
+        help_text='Impacto en generación mensual por este componente',
+    )
+
+    # Metadata
+    fecha_seleccion = models.DateTimeField(
+        auto_now_add=True, verbose_name='Fecha de selección',
+    )
+    fecha_actualizacion = models.DateTimeField(
+        auto_now=True, verbose_name='Última actualización',
+    )
+    activo = models.BooleanField(default=True, verbose_name='Activo')
+
+    class Meta:
+        verbose_name = 'Equipo seleccionado'
+        verbose_name_plural = 'Equipos seleccionados'
+        unique_together = ('proyecto', 'equipo', 'tipo_equipo')
+        ordering = ['tipo_equipo', 'equipo__fabricante', 'equipo__modelo']
+
+    def __str__(self):
+        return f"{self.proyecto.codigo} - {self.cantidad}x {self.equipo.nombre}"
+
+    @property
+    def potencia_total(self):
+        """Total power from this equipment selection."""
+        return self.equipo.potencia_nominal_w * self.cantidad
+
+    @property
+    def subtotal_equipo(self):
+        """Equipment cost for this selection."""
+        return float(self.equipo.precio_venta) * self.cantidad
+
+
+class EquipoCompatibilidad(models.Model):
+    """Track compatibility rules and conflicts between equipment types.
+    
+    Stores validation rules for equipment compatibility (e.g., voltage matching
+    between panels and inverters, string sizing rules, etc.).
+    """
+
+    class TipoValidacion(models.TextChoices):
+        VOLTAJE = 'voltaje', 'Rango de voltaje'
+        CORRIENTE = 'corriente', 'Rango de corriente'
+        POTENCIA = 'potencia', 'Rango de potencia'
+        TECNOLOGIA = 'tecnologia', 'Compatibilidad de tecnología'
+        CUSTOM = 'custom', 'Validación personalizada'
+
+    # Define compatibility rule
+    equipo_base = models.ForeignKey(
+        Equipo, on_delete=models.CASCADE,
+        related_name='compatibilidades_como_base',
+        verbose_name='Equipo base',
+    )
+    equipo_compatible = models.ForeignKey(
+        Equipo, on_delete=models.CASCADE,
+        related_name='compatibilidades_como_compatible',
+        verbose_name='Equipo compatible',
+    )
+
+    # Validation type
+    tipo_validacion = models.CharField(
+        max_length=20, choices=TipoValidacion.choices,
+        default=TipoValidacion.VOLTAJE,
+        verbose_name='Tipo de validación',
+    )
+
+    # Constraints
+    valor_minimo = models.FloatField(
+        null=True, blank=True, verbose_name='Valor mínimo',
+    )
+    valor_maximo = models.FloatField(
+        null=True, blank=True, verbose_name='Valor máximo',
+    )
+    mensaje_alerta = models.TextField(
+        blank=True, verbose_name='Mensaje de alerta',
+        help_text='Mensaje mostrado si se incumple la validación',
+    )
+    es_critico = models.BooleanField(
+        default=False, verbose_name='Es crítico',
+        help_text='Si es crítico, impide guardar la combinación',
+    )
+
+    # Metadata
+    activo = models.BooleanField(default=True, verbose_name='Activo')
+    fecha_creacion = models.DateTimeField(
+        auto_now_add=True, verbose_name='Fecha de creación',
+    )
+
+    class Meta:
+        verbose_name = 'Compatibilidad de equipos'
+        verbose_name_plural = 'Compatibilidades de equipos'
+        unique_together = ('equipo_base', 'equipo_compatible', 'tipo_validacion')
+
+    def __str__(self):
+        return f"{self.equipo_base.nombre} + {self.equipo_compatible.nombre}"
+
+
+class ChartExplanation(models.Model):
+    """Persuasive explanations for charts used in PDF reports and UI.
+    
+    Stores editable, persuasive descriptions for each chart that help
+    clients understand the benefits and technical details of their system.
+    """
+
+    class TipoGrafico(models.TextChoices):
+        CONSUMO_VS_GENERACION = 'consumo_generacion', 'Consumo vs Generación'
+        ROI_ACUMULADO = 'roi_acumulado', 'ROI Acumulado'
+        RADIACION_MENSUAL = 'radiacion_mensual', 'Radiación mensual (PVGIS)'
+        HSP_MENSUAL = 'hsp_mensual', 'HSP - Horas Solar Pico'
+        EFICIENCIA_SISTEMA = 'eficiencia', 'Eficiencia del sistema'
+        PERDIDAS_SISTEMA = 'perdidas', 'Pérdidas del sistema'
+
+    # Link to project sizing
+    proyecto = models.OneToOneField(
+        Proyecto, on_delete=models.CASCADE,
+        related_name='chart_explanations',
+        null=True, blank=True,
+        verbose_name='Proyecto',
+    )
+
+    # Chart type
+    tipo_grafico = models.CharField(
+        max_length=30, choices=TipoGrafico.choices,
+        verbose_name='Tipo de gráfico',
+    )
+
+    # Explanations
+    titulo_corto = models.CharField(
+        max_length=150, verbose_name='Título corto',
+        help_text='Título del gráfico en lo UI',
+    )
+    explicacion_tecnica = models.TextField(
+        verbose_name='Explicación técnica',
+        help_text='Explicación detallada para el PDF (3-5 párrafos)',
+    )
+    puntos_clave = models.TextField(
+        verbose_name='Puntos clave',
+        help_text='Lista de puntos clave separados por líneas',
+    )
+    recomendaciones = models.TextField(
+        blank=True, verbose_name='Recomendaciones',
+        help_text='Recomendaciones para el usuario (opcional)',
+    )
+
+    # Customization
+    es_personalizada = models.BooleanField(
+        default=False, verbose_name='Es personalizada',
+        help_text='Si es False, usa la explicación por defecto del sistema',
+    )
+
+    # Metadata
+    fecha_creacion = models.DateTimeField(
+        auto_now_add=True, verbose_name='Fecha de creación',
+    )
+    fecha_actualizacion = models.DateTimeField(
+        auto_now=True, verbose_name='Última actualización',
+    )
+
+    class Meta:
+        verbose_name = 'Explicación de gráfico'
+        verbose_name_plural = 'Explicaciones de gráficos'
+        ordering = ['tipo_grafico']
+
+    def __str__(self):
+        return f"{self.get_tipo_grafico_display()} - {self.titulo_corto}"

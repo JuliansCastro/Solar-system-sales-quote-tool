@@ -27,7 +27,7 @@ from django.utils import timezone
 
 from .models import (
     User, Cliente, Proyecto, Equipo, Cotizacion, CotizacionItem, Carga, CargaTipo,
-    CompanySettings,
+    CompanySettings, Departamento, Municipio,
 )
 from .forms import (
     CustomLoginForm, UserRegistrationForm,
@@ -39,6 +39,7 @@ from .sizing import (
     dimensionar_on_grid, dimensionar_off_grid, obtener_datos_pvgis,
     sugerir_equipos, calcular_proyeccion_financiera,
 )
+from .chart_data import build_cotizacion_charts_payload
 
 
 # ──────────────────────────────────────────────
@@ -615,6 +616,16 @@ def proyecto_dimensionar(request, pk):
     if resultado:
         sugerencias = sugerir_equipos(proyecto, resultado)
 
+    # Get available equipment grouped by category
+    equipos_por_categoria = {}
+    for categoria_key, categoria_label in Equipo.Categoria.choices:
+        equipos = Equipo.objects.filter(activo=True, categoria=categoria_key).order_by('fabricante', 'modelo')
+        if equipos.exists():
+            equipos_por_categoria[categoria_label] = equipos
+
+    # Get selected equipment for this project
+    equipos_seleccionados = proyecto.equipos_seleccionados.select_related('equipo').all()
+
     context = {
         'proyecto': proyecto,
         'cliente': cliente,
@@ -622,6 +633,8 @@ def proyecto_dimensionar(request, pk):
         'sugerencias': sugerencias,
         'pvgis_data': pvgis_data,
         'proyeccion': json.dumps(proyeccion) if proyeccion else None,
+        'equipos_por_categoria': equipos_por_categoria,
+        'equipos_seleccionados': equipos_seleccionados,
     }
     return render(request, 'core/proyectos/proyecto_dimensionamiento.html', context)
 
@@ -1069,76 +1082,26 @@ def cotizacion_excel(request, pk):
 def cotizacion_charts_data(request, pk):
     """API endpoint for chart data in cotización view."""
     cotizacion = get_object_or_404(Cotizacion, pk=pk)
-    proyecto = cotizacion.proyecto
-    cliente = proyecto.cliente
+    return JsonResponse(build_cotizacion_charts_payload(cotizacion))
 
-    # Cost distribution by category
-    items = cotizacion.items.select_related('equipo').all()
-    cost_by_category = {}
-    for item in items:
-        cat = item.equipo.get_categoria_display()
-        cost_by_category[cat] = cost_by_category.get(cat, 0) + float(item.subtotal)
 
-    if float(cotizacion.costo_instalacion) > 0:
-        cost_by_category['Instalación'] = float(cotizacion.costo_instalacion)
-    if float(cotizacion.costo_transporte) > 0:
-        cost_by_category['Transporte'] = float(cotizacion.costo_transporte)
+# ──────────────────────────────────────────────
+# MUNICIPIOS API ENDPOINT
+# ──────────────────────────────────────────────
 
-    # Consumption comparison
-    generacion = proyecto.generacion_mensual_kwh or 0
-    consumo = cliente.consumo_mensual_kwh
-
-    # Financial projection
-    ahorro_anual = float(proyecto.ahorro_mensual or 0) * 12
-    costo = float(proyecto.costo_total or 0)
-
-    proyeccion = calcular_proyeccion_financiera(
-        ahorro_anual_cop=ahorro_anual,
-        costo_sistema=costo,
-    )
-
-    # Monthly savings comparison
-    gasto_actual = consumo * cliente.tarifa_electrica
-    gasto_con_solar = max(0, (consumo - generacion)) * cliente.tarifa_electrica
-
-    # PVGIS data for radiation and HSP charts
-    pvgis_data = obtener_datos_pvgis(proyecto.latitud, proyecto.longitud)
-    radiacion_mensual = []
-    hsp_mensual = []
-    if pvgis_data.radiacion_mensual:
-        radiacion_mensual = [r['radiacion_kwh_m2'] for r in pvgis_data.radiacion_mensual]
-        hsp_mensual = [r['hsp'] for r in pvgis_data.radiacion_mensual]
-
-    return JsonResponse({
-        'costo_por_componente': {
-            'labels': list(cost_by_category.keys()),
-            'values': list(cost_by_category.values()),
-        },
-        'consumo_comparacion': {
-            'labels': ['Consumo actual', 'Con sistema solar'],
-            'actual': consumo,
-            'con_solar': max(0, consumo - generacion),
-            'generacion': generacion,
-        },
-        'ahorro_dinero': {
-            'gasto_actual': gasto_actual,
-            'gasto_con_solar': gasto_con_solar,
-            'ahorro_mensual': gasto_actual - gasto_con_solar,
-        },
-        'proyeccion_financiera': proyeccion,
-        'roi_anos': proyecto.roi_anos,
-        'radiacion_mensual': radiacion_mensual,
-        'hsp_mensual': hsp_mensual,
-        'hsp_promedio': pvgis_data.hsp_promedio,
-        'sizing': {
-            'potencia_pico_kwp': proyecto.potencia_pico_kwp,
-            'numero_paneles': proyecto.numero_paneles,
-            'generacion_mensual_kwh': generacion,
-            'porcentaje_cobertura': proyecto.porcentaje_cobertura,
-            'capacidad_baterias_kwh': proyecto.capacidad_baterias_kwh,
-            'autonomia_dias': proyecto.autonomia_dias,
-        },
-    })
+@login_required
+def api_municipios_por_departamento(request, departamento_id):
+    """AJAX endpoint to fetch municipalities for a given department."""
+    try:
+        municipios = Municipio.objects.filter(
+            departamento_id=departamento_id,
+            activo=True
+        ).values('id_municipio', 'nombre').order_by('nombre')
+        return JsonResponse({
+            'municipios': list(municipios)
+        })
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
 
 
 # ──────────────────────────────────────────────
