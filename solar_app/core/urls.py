@@ -1,8 +1,16 @@
 """URL configuration for core app."""
-from django.urls import path
+from django.conf import settings
+from django.urls import include, path
 from . import views
+from . import api_equipment
 
-urlpatterns = [
+urlpatterns = []
+
+if settings.API_V1_ENABLED:
+    urlpatterns += [path('api/v1/', include('core.api_urls'))]
+
+urlpatterns += [
+
     # Auth
     path('', views.login_view, name='home'),
     path('accounts/login/', views.login_view, name='login'),
@@ -64,4 +72,13 @@ urlpatterns = [
     # API endpoints
     path('api/pvgis/', views.api_pvgis, name='api_pvgis'),
     path('api/cotizacion/<int:pk>/charts/', views.cotizacion_charts_data, name='cotizacion_charts_data'),
+    path('api/municipios/<int:departamento_id>/', views.api_municipios_por_departamento, name='api_municipios_por_departamento'),
+    
+    # Equipment Selection API endpoints
+    path('api/equipment/list/', api_equipment.api_equipment_list, name='api_equipment_list'),
+    path('api/proyectos/<int:pk>/equipment/select/', api_equipment.api_equipment_select, name='api_equipment_select'),
+    path('api/proyectos/<int:pk>/equipment/<int:seleccion_id>/remove/', api_equipment.api_equipment_remove, name='api_equipment_remove'),
+    path('api/proyectos/<int:pk>/equipment/<int:seleccion_id>/update/', api_equipment.api_equipment_update_qty, name='api_equipment_update_qty'),
+    path('api/proyectos/<int:pk>/recalculate/', api_equipment.api_recalculate_generation, name='api_recalculate'),
+    path('api/proyectos/<int:pk>/check-compatibility/', api_equipment.api_check_compatibility, name='api_check_compatibility'),
 ]

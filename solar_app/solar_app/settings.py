@@ -4,10 +4,16 @@ Solar System Sales Quote Tool
 """
 
 import os
+from datetime import timedelta
 from pathlib import Path
 from dotenv import load_dotenv
 
 load_dotenv()
+
+try:
+    import sentry_sdk
+except Exception:  # pragma: no cover
+    sentry_sdk = None
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -19,6 +25,7 @@ ALLOWED_HOSTS = os.getenv('DJANGO_ALLOWED_HOSTS', 'localhost,127.0.0.1,testserve
 
 # Application definition
 INSTALLED_APPS = [
+    'django_prometheus',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -28,6 +35,8 @@ INSTALLED_APPS = [
     'django.contrib.humanize',
     # Third party
     'rest_framework',
+    'rest_framework_simplejwt.token_blacklist',
+    'drf_spectacular',
     'django_filters',
     'crispy_forms',
     'crispy_tailwind',
@@ -36,14 +45,17 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    'django_prometheus.middleware.PrometheusBeforeMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
+    'core.middleware.DeprecatedApiHeadersMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'django_prometheus.middleware.PrometheusAfterMiddleware',
 ]
 
 ROOT_URLCONF = 'solar_app.urls'
@@ -127,6 +139,7 @@ CRISPY_TEMPLATE_PACK = 'tailwind'
 # REST Framework
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
         'rest_framework.authentication.SessionAuthentication',
     ],
     'DEFAULT_PERMISSION_CLASSES': [
@@ -139,7 +152,86 @@ REST_FRAMEWORK = {
     ],
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 20,
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
 }
+
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'Solar Quote Tool API',
+    'DESCRIPTION': 'API versionada para selección de equipos y dimensionamiento solar.',
+    'VERSION': '1.0.0',
+    'SERVE_INCLUDE_SCHEMA': False,
+}
+
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(
+        minutes=int(os.getenv('JWT_ACCESS_MINUTES', '30')),
+    ),
+    'REFRESH_TOKEN_LIFETIME': timedelta(
+        days=int(os.getenv('JWT_REFRESH_DAYS', '7')),
+    ),
+    'ROTATE_REFRESH_TOKENS': os.getenv('JWT_ROTATE_REFRESH_TOKENS', 'True').lower() in ('true', '1', 'yes'),
+    'BLACKLIST_AFTER_ROTATION': True,
+    'ALGORITHM': 'HS256',
+    'SIGNING_KEY': SECRET_KEY,
+    'AUTH_HEADER_TYPES': ('Bearer',),
+}
+
+API_V1_ENABLED = os.getenv('API_V1_ENABLED', 'True').lower() in ('true', '1', 'yes')
+LEGACY_API_DEPRECATION_HEADERS_ENABLED = os.getenv(
+    'LEGACY_API_DEPRECATION_HEADERS_ENABLED',
+    'True',
+).lower() in ('true', '1', 'yes')
+
+METRICS_ENABLED = os.getenv('METRICS_ENABLED', 'True').lower() in ('true', '1', 'yes')
+
+LOG_LEVEL = os.getenv('DJANGO_LOG_LEVEL', 'INFO')
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'json': {
+            '()': 'pythonjsonlogger.json.JsonFormatter',
+            'format': '%(asctime)s %(levelname)s %(name)s %(message)s %(pathname)s %(lineno)s',
+        },
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'json',
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': LOG_LEVEL,
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console'],
+            'level': LOG_LEVEL,
+            'propagate': False,
+        },
+        'core': {
+            'handlers': ['console'],
+            'level': LOG_LEVEL,
+            'propagate': False,
+        },
+    },
+}
+
+
+def _init_sentry():
+    dsn = os.getenv('SENTRY_DSN', '').strip()
+    if not dsn or sentry_sdk is None:
+        return
+    sentry_sdk.init(
+        dsn=dsn,
+        environment=os.getenv('SENTRY_ENVIRONMENT', 'development'),
+        traces_sample_rate=float(os.getenv('SENTRY_TRACES_SAMPLE_RATE', '0.1')),
+        send_default_pii=False,
+    )
+
+
+_init_sentry()
 
 # Login URLs
 LOGIN_URL = '/accounts/login/'

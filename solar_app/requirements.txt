@@ -1,9 +1,14 @@
 # Django
 Django>=5.1,<5.2
 djangorestframework>=3.15
+djangorestframework-simplejwt>=5.3
+drf-spectacular>=0.27
 django-filter>=24.0
+django-prometheus>=2.3
 django-crispy-forms>=2.3
 crispy-tailwind>=1.0
+sentry-sdk>=2.14
+python-json-logger>=2.0
 
 # Database
 psycopg2-binary>=2.9
@@ -24,6 +29,9 @@ WeasyPrint>=62.0
 # API - PVGIS integration
 requests>=2.32
 
+# Task Scheduling
+APScheduler>=3.10
+
 # Deployment
 gunicorn>=22.0
 whitenoise>=6.7
@@ -31,6 +39,13 @@ whitenoise>=6.7
 # Development
 python-dotenv>=1.0
 django-debug-toolbar>=4.4
+pytest>=8.0
+pytest-django>=4.8
+factory_boy>=3.3
+freezegun>=1.5
+ruff>=0.6
+black>=24.8
+isort>=5.13
 
 # Math / Engineering
 numpy>=1.26

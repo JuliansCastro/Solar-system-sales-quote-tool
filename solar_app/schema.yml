@@ -1,0 +1,403 @@
+openapi: 3.0.3
+info:
+  title: Solar Quote Tool API
+  version: 1.0.0
+  description: API versionada para selección de equipos y dimensionamiento solar.
+paths:
+  /api/v1/auth/token/:
+    post:
+      operationId: v1_auth_token_create
+      description: |-
+        Takes a set of user credentials and returns an access and refresh JSON web
+        token pair to prove the authentication of those credentials.
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TokenObtainPair'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TokenObtainPair'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TokenObtainPair'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenObtainPair'
+          description: ''
+  /api/v1/auth/token/refresh/:
+    post:
+      operationId: v1_auth_token_refresh_create
+      description: |-
+        Takes a refresh type JSON web token and returns an access type JSON web
+        token if the refresh token is valid.
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TokenRefresh'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TokenRefresh'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TokenRefresh'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenRefresh'
+          description: ''
+  /api/v1/auth/token/verify/:
+    post:
+      operationId: v1_auth_token_verify_create
+      description: |-
+        Takes a token and indicates if it is valid.  This view provides no
+        information about a token's fitness for a particular use.
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TokenVerify'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TokenVerify'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TokenVerify'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenVerify'
+          description: ''
+  /api/v1/equipment/:
+    get:
+      operationId: v1_equipment_list
+      description: List equipment catalog entries with filters.
+      parameters:
+      - in: query
+        name: buscar
+        schema:
+          type: string
+          maxLength: 100
+          minLength: 1
+      - in: query
+        name: categoria_equipo
+        schema:
+          enum:
+          - panel
+          - inversor
+          - bateria
+          - regulador
+          - estructura
+          - cable
+          - proteccion
+          - medidor
+          - accesorio
+          - otro
+          type: string
+          minLength: 1
+        description: |-
+          * `panel` - Panel Solar
+          * `inversor` - Inversor
+          * `bateria` - Batería
+          * `regulador` - Regulador de carga
+          * `estructura` - Estructura de montaje
+          * `cable` - Cableado
+          * `proteccion` - Protección eléctrica
+          * `medidor` - Medidor bidireccional
+          * `accesorio` - Accesorio
+          * `otro` - Otro
+      - in: query
+        name: en_stock
+        schema:
+          type: boolean
+      - in: query
+        name: fabricante
+        schema:
+          type: string
+          maxLength: 100
+          minLength: 1
+      - in: query
+        name: potencia_max
+        schema:
+          type: number
+          format: double
+          minimum: 0
+      - in: query
+        name: potencia_min
+        schema:
+          type: number
+          format: double
+          minimum: 0
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SuccessEnvelope'
+          description: ''
+  /api/v1/projects/{id}/check-compatibility/:
+    post:
+      operationId: v1_projects_check_compatibility_create
+      description: Project-scoped equipment operations.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Un valor de entero único que identifique este Proyecto.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SuccessEnvelope'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/SuccessEnvelope'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/SuccessEnvelope'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+          description: ''
+  /api/v1/projects/{id}/equipment/{selection_id}/remove/:
+    post:
+      operationId: v1_projects_equipment_remove_create
+      description: Project-scoped equipment operations.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Un valor de entero único que identifique este Proyecto.
+        required: true
+      - in: path
+        name: selection_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SuccessEnvelope'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/SuccessEnvelope'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/SuccessEnvelope'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+          description: ''
+  /api/v1/projects/{id}/equipment/{selection_id}/update/:
+    post:
+      operationId: v1_projects_equipment_update_create
+      description: Project-scoped equipment operations.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Un valor de entero único que identifique este Proyecto.
+        required: true
+      - in: path
+        name: selection_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SuccessEnvelope'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/SuccessEnvelope'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/SuccessEnvelope'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+          description: ''
+  /api/v1/projects/{id}/equipment/select/:
+    post:
+      operationId: v1_projects_equipment_select_create
+      description: Project-scoped equipment operations.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Un valor de entero único que identifique este Proyecto.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SuccessEnvelope'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/SuccessEnvelope'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/SuccessEnvelope'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+          description: ''
+  /api/v1/projects/{id}/recalculate/:
+    post:
+      operationId: v1_projects_recalculate_create
+      description: Project-scoped equipment operations.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Un valor de entero único que identifique este Proyecto.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SuccessEnvelope'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/SuccessEnvelope'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/SuccessEnvelope'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+          description: ''
+components:
+  schemas:
+    SuccessEnvelope:
+      type: object
+      properties:
+        success:
+          type: boolean
+      required:
+      - success
+    TokenObtainPair:
+      type: object
+      properties:
+        username:
+          type: string
+          writeOnly: true
+        password:
+          type: string
+          writeOnly: true
+        access:
+          type: string
+          readOnly: true
+        refresh:
+          type: string
+          readOnly: true
+      required:
+      - access
+      - password
+      - refresh
+      - username
+    TokenRefresh:
+      type: object
+      properties:
+        access:
+          type: string
+          readOnly: true
+        refresh:
+          type: string
+      required:
+      - access
+      - refresh
+    TokenVerify:
+      type: object
+      properties:
+        token:
+          type: string
+          writeOnly: true
+      required:
+      - token
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: sessionid
+    jwtAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
