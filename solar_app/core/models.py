@@ -408,6 +408,48 @@ class Proyecto(models.Model):
         return f"{prefix}-{date_part}-0001"
 
 
+
+# ──────────────────────────────────────────────
+# ARCHIVO (Shared Technical Documentation)
+# ──────────────────────────────────────────────
+
+class Archivo(models.Model):
+    """Technical documentation (PDFs) shared across equipment."""
+
+    archivo = models.FileField(
+        upload_to='equipos/archivos/',
+        verbose_name='Archivo PDF',
+        help_text='Ficha técnica, manual, o documentación relacionada',
+    )
+    nombre = models.CharField(
+        max_length=200,
+        verbose_name='Nombre descriptivo',
+        help_text='Ej: Ficha técnica, Manual de instalación, etc.',
+    )
+    hash_archivo = models.CharField(
+        max_length=64,
+        unique=True,
+        verbose_name='Hash SHA256',
+        help_text='Usado para deduplicación automática',
+    )
+    fecha_creacion = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name='Fecha de creación',
+    )
+    fecha_actualizacion = models.DateTimeField(
+        auto_now=True,
+        verbose_name='Última actualización',
+    )
+
+    class Meta:
+        verbose_name = 'Archivo técnico'
+        verbose_name_plural = 'Archivos técnicos'
+        ordering = ['-fecha_creacion']
+
+    def __str__(self):
+        return self.nombre
+
+
 # ──────────────────────────────────────────────
 # EQUIPO (EQUIPMENT INVENTORY) MODEL
 # ──────────────────────────────────────────────
@@ -461,8 +503,10 @@ class Equipo(models.Model):
         validators=[MinValueValidator(0)],
         null=True, blank=True,
     )
-    eficiencia = models.FloatField(
+    eficiencia = models.DecimalField(
         verbose_name='Eficiencia (%)',
+        max_digits=5,
+        decimal_places=2,
         validators=[MinValueValidator(0), MaxValueValidator(100)],
         null=True, blank=True,
     )
@@ -531,15 +575,20 @@ class Equipo(models.Model):
         upload_to='equipos/imagenes/', blank=True, null=True,
         verbose_name='Imagen',
     )
-    ficha_tecnica = models.FileField(
-        upload_to='equipos/fichas/', blank=True, null=True,
-        verbose_name='Ficha técnica (PDF)',
-    )
 
     # Metadata
     activo = models.BooleanField(default=True, verbose_name='Activo')
     fecha_creacion = models.DateTimeField(auto_now_add=True, verbose_name='Fecha de creación')
     fecha_actualizacion = models.DateTimeField(auto_now=True, verbose_name='Última actualización')
+    
+    # Many-to-Many relationship with documentation
+    archivos = models.ManyToManyField(
+        Archivo,
+        related_name='equipos',
+        blank=True,
+        verbose_name='Archivos técnicos',
+        help_text='Fichas técnicas y manuales compartidos con otros equipos',
+    )
 
     class Meta:
         verbose_name = 'Equipo'
@@ -769,7 +818,7 @@ class CotizacionItem(models.Model):
         related_name='items', verbose_name='Cotización',
     )
     equipo = models.ForeignKey(
-        Equipo, on_delete=models.PROTECT,
+        Equipo, on_delete=models.CASCADE,
         related_name='cotizacion_items', verbose_name='Equipo',
     )
     cantidad = models.IntegerField(
@@ -834,7 +883,7 @@ class CargaTipo(models.Model):
     )
     horas_uso_dia = models.FloatField(
         verbose_name='Horas de uso por día (por defecto)',
-        validators=[MinValueValidator(0), MaxValueValidator(24)],
+        validators=[MinValueValidator(0.1), MaxValueValidator(24)],
         default=1.0,
     )
     factor_potencia = models.FloatField(
@@ -906,7 +955,7 @@ class Carga(models.Model):
     )
     horas_uso_dia = models.FloatField(
         verbose_name='Horas de uso por día',
-        validators=[MinValueValidator(0), MaxValueValidator(24)],
+        validators=[MinValueValidator(0.1), MaxValueValidator(24)],
     )
     factor_potencia = models.FloatField(
         verbose_name='Factor de potencia',
@@ -986,7 +1035,7 @@ class SelectedEquipo(models.Model):
         related_name='equipos_seleccionados', verbose_name='Proyecto',
     )
     equipo = models.ForeignKey(
-        Equipo, on_delete=models.PROTECT,
+        Equipo, on_delete=models.CASCADE,
         related_name='selecciones', verbose_name='Equipo',
     )
 

@@ -1,11 +1,12 @@
 """Legacy API adapters for backward-compatible equipment endpoints."""
 
 import json
+
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
 
-from core.api_serializers import (
+from core.api.serializers import (
     EquipmentFilterQuerySerializer,
     EquipmentQuantityUpdateSerializer,
     EquipmentSelectSerializer,
@@ -42,6 +43,7 @@ def _call_service(service_fn):
     except Exception as exc:  # pragma: no cover
         return _legacy_response({"success": False, "error": str(exc)}, status=400)
 
+
 @login_required
 @require_http_methods(["GET"])
 def api_equipment_list(request):
@@ -49,6 +51,7 @@ def api_equipment_list(request):
     if not serializer.is_valid():
         return _legacy_response({"success": False, "error": serializer.errors}, status=400)
     return _call_service(lambda: list_available_equipment(serializer.validated_data))
+
 
 @login_required
 @require_http_methods(["POST"])
@@ -77,10 +80,12 @@ def api_equipment_update_qty(request, pk, seleccion_id):
         lambda: update_equipment_quantity(pk, seleccion_id, serializer.validated_data["qty_change"])
     )
 
+
 @login_required
 @require_http_methods(["POST"])
 def api_recalculate_generation(request, pk):
     return _call_service(lambda: recalculate_generation(pk))
+
 
 @login_required
 @require_http_methods(["POST"])

@@ -3,7 +3,7 @@ Management command for controlling the backup scheduler.
 """
 from django.core.management.base import BaseCommand
 
-from core.backup_scheduler import start_scheduler, stop_scheduler, get_scheduler_status
+from core.ops.backup_scheduler import start_scheduler, stop_scheduler, get_scheduler_status
 
 
 class Command(BaseCommand):

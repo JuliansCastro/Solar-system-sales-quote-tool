@@ -438,7 +438,7 @@ def sugerir_equipos(proyecto, resultado):
     Returns:
         dict with suggested equipment per category.
     """
-    from .models import Equipo
+    from core.models import Equipo
 
     tipo = proyecto.tipo_sistema
     sugerencias = {}

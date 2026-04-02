@@ -9,9 +9,9 @@ from decimal import Decimal
 from django import forms
 from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
 from django.core.exceptions import ValidationError
-from .models import (
+from core.models import (
     User, Cliente, Proyecto, Equipo, Cotizacion, CotizacionItem, Carga, CargaTipo, CompanySettings,
-    SelectedEquipo, EquipoCompatibilidad, ChartExplanation,
+    SelectedEquipo, EquipoCompatibilidad, ChartExplanation, Archivo,
 )
 
 
@@ -251,7 +251,7 @@ class EquipoForm(forms.ModelForm):
             'corriente_nominal', 'eficiencia', 'sistema_compatible',
             'garantia_anos', 'largo_mm', 'ancho_mm', 'alto_mm', 'peso_kg',
             'precio_proveedor', 'precio_venta', 'margen_porcentaje',
-            'stock', 'imagen', 'ficha_tecnica', 'activo',
+            'stock', 'imagen', 'activo',
         ]
         widgets = {
             'nombre': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'Nombre del equipo'}),
@@ -261,7 +261,7 @@ class EquipoForm(forms.ModelForm):
             'sku': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'SKU-001'}),
             'descripcion': forms.Textarea(attrs={'class': 'form-input', 'rows': 3}),
             'potencia_nominal_w': forms.NumberInput(attrs={'class': 'form-input', 'step': '0.1', 'min': '0'}),
-            'voltaje_nominal': forms.NumberInput(attrs={'class': 'form-input', 'step': '0.1', 'min': '0'}),
+            'voltaje_nominal': forms.NumberInput(attrs={'class': 'form-input', 'step': '0.01', 'min': '0'}),
             'corriente_nominal': forms.NumberInput(attrs={'class': 'form-input', 'step': '0.01', 'min': '0'}),
             'eficiencia': forms.NumberInput(attrs={'class': 'form-input', 'step': '0.1', 'min': '0', 'max': '100'}),
             'sistema_compatible': forms.Select(attrs={'class': 'form-select'}),
@@ -275,7 +275,6 @@ class EquipoForm(forms.ModelForm):
             'margen_porcentaje': forms.NumberInput(attrs={'class': 'form-input', 'step': '0.1', 'min': '0', 'max': '100'}),
             'stock': forms.NumberInput(attrs={'class': 'form-input', 'min': '0'}),
             'imagen': forms.ClearableFileInput(attrs={'class': 'form-input', 'accept': 'image/*'}),
-            'ficha_tecnica': forms.ClearableFileInput(attrs={'class': 'form-input', 'accept': '.pdf'}),
             'activo': forms.CheckboxInput(attrs={'class': 'form-checkbox'}),
         }
 
@@ -475,7 +474,7 @@ class CargaForm(forms.ModelForm):
                 'class': 'form-input', 'step': '0.1', 'min': '0', 'placeholder': 'Watts',
             }),
             'horas_uso_dia': forms.NumberInput(attrs={
-                'class': 'form-input', 'step': '0.5', 'min': '0', 'max': '24',
+                'class': 'form-input', 'step': '0.01', 'min': '0.1', 'max': '24',
             }),
             'factor_potencia': forms.NumberInput(attrs={
                 'class': 'form-input', 'step': '0.01', 'min': '0', 'max': '1', 'value': '1.0',
@@ -521,7 +520,7 @@ class CargaTipoForm(forms.ModelForm):
                 'class': 'form-input', 'step': '0.1', 'min': '0', 'placeholder': 'Watts',
             }),
             'horas_uso_dia': forms.NumberInput(attrs={
-                'class': 'form-input', 'step': '0.5', 'min': '0', 'max': '24', 'placeholder': '8',
+                'class': 'form-input', 'step': '0.01', 'min': '0.1', 'max': '24', 'placeholder': '8',
             }),
             'factor_potencia': forms.NumberInput(attrs={
                 'class': 'form-input', 'step': '0.01', 'min': '0', 'max': '1', 'value': '1.0',
@@ -677,3 +676,64 @@ class ChartExplanationForm(forms.ModelForm):
                 'placeholder': 'Recomendaciones para el usuario (opcional)',
             }),
         }
+
+
+# ──────────────────────────────────────────────
+# BACKUP & RESTORE FORMS
+# ──────────────────────────────────────────────
+
+class BackupRestoreForm(forms.Form):
+    """Form for uploading and restoring database backups."""
+
+    backup_file = forms.FileField(
+        label='Archivo de backup',
+        required=True,
+        help_text='Seleccione un archivo JSON previamente exportado',
+        widget=forms.ClearableFileInput(attrs={
+            'class': 'form-input',
+            'accept': '.json',
+            'data-test': 'backup-file-input',
+        }),
+    )
+    confirmar_restauracion = forms.BooleanField(
+        label='Confirmo que deseo restaurar la base de datos',
+        required=True,
+        widget=forms.CheckboxInput(attrs={
+            'class': 'h-4 w-4 text-red-600 border-gray-300 rounded focus:ring-red-500',
+            'data-test': 'confirm-restore-checkbox',
+        }),
+        help_text='<strong>¡ADVERTENCIA!</strong> Esta acción eliminará todos los datos actuales.',
+    )
+
+    def clean_backup_file(self):
+        """Validate that the backup file is a JSON file."""
+        import json
+        backup_file = self.cleaned_data.get('backup_file')
+        
+        if backup_file:
+            # Check file extension
+            if not backup_file.name.endswith('.json'):
+                raise ValidationError(
+                    'El archivo debe ser un archivo JSON válido con extensión .json'
+                )
+            
+            # Check file size (max 50MB)
+            if backup_file.size > 50 * 1024 * 1024:  # 50MB
+                raise ValidationError(
+                    'El archivo de backup es demasiado grande (máximo 50 MB).'
+                )
+            
+            # Try to parse JSON to verify it's valid
+            try:
+                backup_file.seek(0)
+                content = backup_file.read().decode('utf-8')
+                json.loads(content)
+                backup_file.seek(0)  # Reset file pointer for later use
+            except json.JSONDecodeError:
+                raise ValidationError(
+                    'El archivo no es un JSON válido. Asegúrese de que sea un backup exportado correctamente.'
+                )
+            except Exception as e:
+                raise ValidationError(f'Error al procesar el archivo: {str(e)}')
+        
+        return backup_file

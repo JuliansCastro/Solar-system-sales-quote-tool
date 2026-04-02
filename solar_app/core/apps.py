@@ -11,14 +11,14 @@ class CoreConfig(AppConfig):
     verbose_name = 'Solar Quote Core'
 
     def ready(self):
-        import core.signals  # noqa: F401
+        import core.runtime.signals  # noqa: F401
         
         # Start backup scheduler in production environment
         from django.conf import settings
         
         if not settings.DEBUG:
             try:
-                from core.backup_scheduler import start_scheduler
+                from core.ops.backup_scheduler import start_scheduler
                 start_scheduler()
             except Exception as e:
                 logger.error(f"Failed to start backup scheduler: {e}", exc_info=True)

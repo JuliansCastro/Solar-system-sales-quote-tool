@@ -2,11 +2,11 @@
 
 from django.db.models import Q
 
-from core.equipment_sizing import (
+from core.calculations.equipment_sizing import (
     calculate_generation_with_equipment,
     validate_equipment_compatibility,
 )
-from core.forms import EquipoFilterFormForSelection
+from core.web.forms import EquipoFilterFormForSelection
 from core.models import Equipo, EquipoCompatibilidad, Proyecto, SelectedEquipo
 
 
@@ -30,6 +30,19 @@ def _get_active_equipo(equipo_id):
         return Equipo.objects.get(pk=equipo_id, activo=True)
     except Equipo.DoesNotExist as exc:
         raise ServiceNotFoundError("Equipo no encontrado") from exc
+
+
+def _serialize_selected_equipo(selected):
+    return {
+        "id": selected.id,
+        "equipo_id": selected.equipo_id,
+        "nombre": f"{selected.equipo.fabricante} {selected.equipo.modelo}",
+        "tipo": selected.tipo_equipo,
+        "cantidad": selected.cantidad,
+        "notas": selected.notas,
+        "precio_unitario": float(selected.equipo.precio_venta),
+        "subtotal": selected.subtotal_equipo,
+    }
 
 
 def list_available_equipment(filters):
@@ -103,15 +116,54 @@ def select_equipment(project_id, payload):
         "success": True,
         "created": created,
         "message": f"{'Equipo agregado' if created else 'Equipo actualizado'} exitosamente",
-        "selected_equipo": {
-            "id": selected.id,
-            "equipo_id": equipo.id,
-            "nombre": f"{equipo.fabricante} {equipo.modelo}",
-            "tipo": payload["tipo_equipo"],
-            "cantidad": cantidad,
-            "precio_unitario": float(equipo.precio_venta),
-            "subtotal": float(equipo.precio_venta) * cantidad,
-        },
+        "selected_equipo": _serialize_selected_equipo(selected),
+    }
+
+
+def list_selected_equipment(project_id):
+    """Return selected equipment collection for a project resource."""
+    proyecto = _get_project(project_id)
+    selected_list = SelectedEquipo.objects.filter(
+        proyecto=proyecto,
+        activo=True,
+    ).select_related("equipo")
+
+    items = [_serialize_selected_equipo(sel) for sel in selected_list]
+    return {
+        "success": True,
+        "count": len(items),
+        "items": items,
+    }
+
+
+def update_selected_equipment(project_id, selection_id, payload):
+    """Patch a selected equipment resource in a project."""
+    proyecto = _get_project(project_id)
+    try:
+        selected = SelectedEquipo.objects.select_related("equipo").get(
+            pk=selection_id,
+            proyecto=proyecto,
+            activo=True,
+        )
+    except SelectedEquipo.DoesNotExist as exc:
+        raise ServiceNotFoundError("Equipo seleccionado no encontrado") from exc
+
+    if "cantidad" in payload:
+        nueva_cantidad = payload["cantidad"]
+        if selected.equipo.stock < nueva_cantidad:
+            raise ServiceValidationError(
+                f"Stock insuficiente. Disponibles: {selected.equipo.stock}"
+            )
+        selected.cantidad = nueva_cantidad
+
+    if "notas" in payload:
+        selected.notas = payload["notas"]
+
+    selected.save(update_fields=["cantidad", "notas", "fecha_actualizacion"])
+    return {
+        "success": True,
+        "message": "Equipo seleccionado actualizado",
+        "selected_equipo": _serialize_selected_equipo(selected),
     }
 
 
@@ -235,14 +287,7 @@ def recalculate_generation(project_id):
         "compatible": is_compatible,
         "alertas": alertas,
         "equipos_seleccionados": [
-            {
-                "id": sel.id,
-                "nombre": f"{sel.equipo.fabricante} {sel.equipo.modelo}",
-                "tipo": sel.tipo_equipo,
-                "cantidad": sel.cantidad,
-                "precio_unitario": float(sel.equipo.precio_venta),
-                "subtotal": sel.subtotal_equipo,
-            }
+            _serialize_selected_equipo(sel)
             for sel in selected_list
         ],
     }

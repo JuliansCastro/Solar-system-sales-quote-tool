@@ -1,5 +1,5 @@
 """Context processors for the core app."""
-from .models import CompanySettings
+from core.models import CompanySettings
 
 
 def company_settings(request):

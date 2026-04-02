@@ -1,0 +1,800 @@
+{% load humanize %}<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Cotización {{ cotizacion.numero }}</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        @page {
+            size: letter;
+            margin: 15mm;
+            @bottom-center {
+                content: "Página " counter(page) " de " counter(pages);
+                font-size: 9pt;
+                color: #999;
+            }
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.5;
+            color: #1f2937;
+            background: white;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+
+        .container {
+            max-width: 100%;
+        }
+
+        /* ─── INFO SECTION ─── */
+        .info-section {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+            font-size: 9pt;
+        }
+
+        .info-block {
+            flex: 1;
+        }
+
+        .info-block-title {
+            font-weight: bold;
+            color: #92400e;
+            font-size: 10pt;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            border-bottom: 2px solid #fef3c7;
+            padding-bottom: 3px;
+        }
+
+        .info-row {
+            margin-bottom: 5px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .info-label {
+            font-weight: bold;
+            color: #666;
+            min-width: 70px;
+        }
+
+        .info-value {
+            color: #1f2937;
+        }
+
+        /* ─── SECTION TITLE ─── */
+        .section-title {
+            font-size: 11pt;
+            font-weight: bold;
+            color: white;
+            background: #f59e0b;
+            padding: 8px 12px;
+            margin: 20px 0 10px 0;
+            border-radius: 3px;
+        }
+
+        /* ─── TABLE ─── */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 12px 0;
+            font-size: 9pt;
+        }
+
+        thead {
+            background: #fef3c7;
+            border-bottom: 2px solid #f59e0b;
+        }
+
+        th {
+            padding: 8px;
+            text-align: left;
+            font-weight: bold;
+            color: #92400e;
+            border: 1px solid #f59e0b;
+        }
+
+        td {
+            padding: 7px;
+            border: 1px solid #e5e7eb;
+        }
+
+        tbody tr:nth-child(odd) {
+            background: #fffbeb;
+        }
+
+        tbody tr:nth-child(even) {
+            background: white;
+        }
+
+        .text-right { text-align: right; }
+        .text-center { text-align: center; }
+        .font-mono { font-family: 'Courier New', monospace; }
+        .font-bold { font-weight: bold; }
+
+        /* ─── TOTALS ─── */
+        .totals-section {
+            margin: 20px 0;
+            padding: 0 0 0 50%;
+        }
+
+        .totals-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 6px;
+            font-size: 10pt;
+        }
+
+        .totals-label {
+            font-weight: bold;
+            color: #666;
+        }
+
+        .totals-value {
+            font-family: 'Courier New', monospace;
+        }
+
+        .totals-row.separator {
+            border-top: 1px solid #e5e7eb;
+            padding-top: 6px;
+            margin-top: 6px;
+        }
+
+        .totals-row.total-final {
+            background: #f59e0b;
+            color: white;
+            padding: 8px 12px;
+            font-size: 12pt;
+            font-weight: bold;
+            border-radius: 3px;
+        }
+
+        /* ─── STATS GRID ─── */
+        .stats-grid {
+            display: flex;
+            gap: 12px;
+            margin: 12px 0;
+            flex-wrap: wrap;
+        }
+
+        .stat-card {
+            flex: 1;
+            min-width: 120px;
+            border: 2px solid #fef3c7;
+            padding: 10px;
+            border-radius: 4px;
+            background: #fffbeb;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 14pt;
+            font-weight: bold;
+            color: #f59e0b;
+            font-family: 'Courier New', monospace;
+            margin: 5px 0;
+        }
+
+        .stat-label {
+            font-size: 8pt;
+            color: #666;
+            line-height: 1.3;
+        }
+
+        /* ─── CONDITIONS ─── */
+        .conditions-box {
+            background: #eff6ff;
+            border-left: 3px solid #2563eb;
+            padding: 10px;
+            margin: 15px 0;
+            font-size: 9pt;
+            line-height: 1.5;
+            color: #0c2340;
+        }
+
+        .conditions-box p {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        /* ─── NOTES ─── */
+        .note-box {
+            background: #fed7aa;
+            border-left: 3px solid #ea580c;
+            padding: 8px 10px;
+            margin: 10px 0;
+            font-size: 9pt;
+            color: #7c2d12;
+        }
+
+        .note-box strong {
+            display: block;
+            margin-bottom: 3px;
+        }
+
+        /* ─── FOOTER ─── */
+        .footer {
+            margin-top: 30px;
+            padding-top: 12px;
+            border-top: 2px solid #e5e7eb;
+            text-align: center;
+            font-size: 8pt;
+            color: #666;
+            line-height: 1.4;
+        }
+
+        .footer p {
+            margin: 3px 0;
+        }
+
+        /* ─── PAGE BREAK ─── */
+        .page-break {
+            page-break-after: always;
+        }
+
+        .page-break-inside-avoid {
+            page-break-inside: avoid;
+        }
+
+        /* ─── EXECUTIVE SUMMARY ─── */
+        .executive-summary {
+            background: #f9fafb;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            padding: 16px;
+            margin: 20px 0;
+            page-break-inside: avoid;
+        }
+
+        .executive-title {
+            font-size: 12pt;
+            font-weight: 700;
+            color: #1f2937;
+            margin-bottom: 14px;
+            text-align: center;
+        }
+
+        .metrics-row {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+
+        .metric-card {
+            flex: 1;
+            background: #ffffff;
+            border: 1px solid #e5e7eb;
+            border-radius: 4px;
+            padding: 12px;
+            text-align: center;
+        }
+
+        .metric-label {
+            font-size: 8.5pt;
+            color: #374151;
+            font-weight: 600;
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .metric-value {
+            font-size: 14pt;
+            font-weight: 700;
+            color: #f59e0b;
+            font-family: 'Courier New', monospace;
+            margin-bottom: 4px;
+        }
+
+        .metric-unit {
+            font-size: 7.5pt;
+            color: #666;
+            display: block;
+        }
+
+        .executive-message {
+            background: #ffffff;
+            border-left: 4px solid #f59e0b;
+            padding: 12px;
+            font-size: 9pt;
+            color: #1f2937;
+            line-height: 1.5;
+            text-align: justify;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+
+        <!-- HEADER (identical to reports.py _build_header) -->
+        <div style="display: table; width: 100%; margin-bottom: 12px;">
+            <!-- Logo Column -->
+            {% if company.logo %}
+            <div style="display: table-cell; width: 17%; vertical-align: middle; padding-right: 12px;">
+                <img src="{{ company.logo }}" alt="{{ company.name }}" style="max-height: 65px; max-width: 110px;">
+            </div>
+            {% endif %}
+            
+            <!-- Company Info Column -->
+            <div style="display: table-cell; {% if company.logo %}width: 39%;{% else %}width: 56%;{% endif %} vertical-align: middle;">
+                <h1 style="font-size: 18pt; color: #92400e; margin: 0 0 6px 0; font-weight: bold;">{{ company.name|default:"EMPRESA SOLAR" }}</h1>
+                <p style="font-size: 8pt; color: #6b7280; margin: 0; line-height: 1.4;">
+                    {% if company.nit %}NIT: {{ company.nit }}{% endif %}{% if company.address %} | {{ company.address }}{% endif %}{% if company.phone %} | Tel: {{ company.phone }}{% endif %}{% if company.email %} | {{ company.email }}{% endif %}
+                </p>
+            </div>
+            
+            <!-- Cotización Info Column -->
+            <div style="display: table-cell; {% if company.logo %}width: 44%;{% else %}width: 44%;{% endif %} vertical-align: middle; text-align: right;">
+                <div style="font-size: 14pt; color: #92400e; font-weight: bold; margin-bottom: 6px;"><b>COTIZACIÓN</b></div>
+                <div style="font-size: 9pt; color: #1f2937; font-weight: bold; margin-bottom: 6px; text-align: right;"><b>N° {{ cotizacion.numero }}</b></div>
+                <div style="font-size: 9pt; color: #4b5563; line-height: 1.6; text-align: right;">
+                    <div>Fecha: {{ cotizacion.fecha_emision|date:"d/m/Y" }}</div>
+                    <div>Válida hasta: {{ cotizacion.fecha_vencimiento|date:"d/m/Y" }}</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- CLIENT & PROJECT INFO -->
+        <div class="info-section">
+            <div class="info-block">
+                <div class="info-block-title">Cliente</div>
+                <div class="info-row">
+                    <span class="info-label">Nombre:</span>
+                    <span class="info-value">{{ cliente.nombre }}</span>
+                </div>
+                {% if cliente.ciudad %}
+                <div class="info-row">
+                    <span class="info-label">Ciudad:</span>
+                    <span class="info-value">{{ cliente.ciudad }}, {{ cliente.departamento }}</span>
+                </div>
+                {% endif %}
+                {% if cliente.telefono %}
+                <div class="info-row">
+                    <span class="info-label">Teléfono:</span>
+                    <span class="info-value">{{ cliente.telefono }}</span>
+                </div>
+                {% endif %}
+            </div>
+
+            <div class="info-block">
+                <div class="info-block-title">Proyecto</div>
+                <div class="info-row">
+                    <span class="info-label">Nombre:</span>
+                    <span class="info-value">{{ proyecto.nombre }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Código:</span>
+                    <span class="info-value">{{ proyecto.codigo }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Tipo:</span>
+                    <span class="info-value">{{ proyecto.get_tipo_sistema_display }}</span>
+                </div>
+            </div>
+
+            <div class="info-block">
+                <!--div class="info-block-title">Cotización</div>-->
+                <div class="info-block-title"><br></div>
+                <div class="info-row">
+                    <span class="info-label">Tipo Cliente:</span>
+                    <span class="info-value">{{ cotizacion.get_tipo_cliente_display }}</span>
+                </div>
+                {% if cotizacion.creado_por %}
+                <div class="info-row">
+                    <span class="info-label">Vendedor:</span>
+                    <span class="info-value">{{ cotizacion.creado_por.get_full_name|default:cotizacion.creado_por.username }}</span>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- EXECUTIVE SUMMARY -->
+        <div class="executive-summary">
+            <div class="executive-title">💼 Resumen Ejecutivo de la Propuesta</div>
+            
+            <!-- Metrics Cards -->
+            <div class="metrics-row">
+                <div class="metric-card">
+                    <div class="metric-label">Inversión</div>
+                    <div class="metric-value">${{ cotizacion.total|floatformat:0|intcomma }}</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">Ahorro Anual Estimado</div>
+                    <div class="metric-value">${{ ahorro_anual|floatformat:0|intcomma }}</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">Retorno Estimado</div>
+                    <div class="metric-value">{% if roi_anos > 0 %}{{ roi_anos|floatformat:1 }}{% else %}N/D{% endif %}</div>
+                    <span class="metric-unit">años</span>
+                </div>
+            </div>
+            
+            <!-- Message -->
+            <div class="executive-message">
+                <strong style="display: block; margin-bottom: 6px; color: #92400e;">✓ Propuesta Integral</strong>
+                Esta propuesta prioriza <strong>rentabilidad inmediata</strong>, <strong>estabilidad energética</strong> y equipos seleccionados desde inventario para asegurar <strong>disponibilidad inmediata</strong>, <strong>compatibilidad técnica</strong> e <strong>implementación confiable</strong> en su proyecto {{ proyecto.codigo }}.
+            </div>
+        </div>
+
+        <!-- ITEMS TABLE -->
+        {% if not cotizacion.usar_total_manual %}
+            <div class="section-title">Ítems de la Cotización</div>
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 5%;">#</th>
+                        <th style="width: 45%;">Equipo</th>
+                        <th style="width: 10%; text-align: center;">Cant.</th>
+                        <th style="width: 15%; text-align: right;">Precio Unit.</th>
+                        <th style="width: 10%; text-align: right;">Desc. %</th>
+                        <th style="width: 15%; text-align: right;">Subtotal</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in items %}
+                    <tr>
+                        <td class="text-center">{{ forloop.counter }}</td>
+                        <td>
+                            <strong>{{ item.equipo.nombre }}</strong><br/>
+                            <span style="font-size: 8pt; color: #666;">SKU: {{ item.equipo.sku }}</span>
+                        </td>
+                        <td class="text-center">{{ item.cantidad }}</td>
+                        <td class="text-right font-mono">${{ item.precio_unitario|floatformat:0|intcomma }}</td>
+                        <td class="text-right">{{ item.descuento_item }}%</td>
+                        <td class="text-right font-mono font-bold">${{ item.subtotal|floatformat:0|intcomma }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <div class="note-box" style="background: #fef3c7; border-left-color: #f59e0b; color: #92400e;">
+                <strong>Total Ingresado Manualmente</strong>
+                El valor total de esta cotización fue ingresado de manera manual.
+            </div>
+        {% endif %}
+
+        <!-- TOTALS -->
+        <div class="totals-section page-break-inside-avoid">
+            <div class="totals-row">
+                <span class="totals-label">Subtotal:</span>
+                <span class="totals-value">${{ cotizacion.subtotal|floatformat:0|intcomma }}</span>
+            </div>
+            {% if cotizacion.descuento > 0 %}
+            <div class="totals-row">
+                <span class="totals-label">Descuento:</span>
+                <span class="totals-value">-${{ cotizacion.descuento|floatformat:0|intcomma }}</span>
+            </div>
+            {% endif %}
+            {% if cotizacion.iva > 0 %}
+            <div class="totals-row separator">
+                <span class="totals-label">IVA (19%):</span>
+                <span class="totals-value">${{ cotizacion.iva|floatformat:0|intcomma }}</span>
+            </div>
+            {% endif %}
+            <div class="totals-row total-final">
+                <span>TOTAL:</span>
+                <span>${{ cotizacion.total|floatformat:0|intcomma }}</span>
+            </div>
+        </div>
+
+
+        <!-- EQUIPMENT SELECTION NOTE -->
+        {% if not cotizacion.usar_total_manual and items %}
+        <div class="page-break-inside-avoid">
+            <div class="conditions-box" style="background: #f9fafb; border-left-color: #f59e0b; color: #1f2937; margin-top: 20px;">
+                <strong style="color: #92400e; display: block; margin-bottom: 5px;">Selección Técnica de Equipos desde Inventario</strong>
+                <p>Se consolidaron <strong>{{ items.count }} referencias</strong> disponibles en inventario {% if categorias_equipos %}(<strong>{% for cat in categorias_equipos %}{% if not forloop.first %}, {% endif %}{{ cat }}{% endfor %}</strong>){% endif %}, priorizando compatibilidad eléctrica y operativa con el dimensionamiento calculado para el proyecto <strong>{{ proyecto.nombre }}</strong>. Esta trazabilidad reduce riesgos de sustitución, mejora tiempos de entrega y mantiene coherencia entre ingeniería, costos y ejecución comercial.</p>
+            </div>
+        </div>
+        {% endif %}
+
+
+        <!-- SIZING RESULTS -->
+        {% if sizing.potencia_pico_kwp or sizing.numero_paneles %}
+        <div class="page-break-inside-avoid" style="margin-bottom: 20px; border: 1px solid #e5e7eb; padding: 16px; background: #fafafa; border-radius: 4px;">
+            <div style="margin-bottom: 16px;">
+                <h2 style="font-size: 13pt; font-weight: 700; color: #1f2937; margin: 0;">📊 Resultados del Dimensionamiento</h2>
+            </div>
+            
+            <!-- Stats Grid (4 columns) -->
+            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 16px;">
+                {% if sizing.potencia_pico_kwp %}
+                <div style="padding: 12px; background: #f0fdf4; border: 1px solid #86efac; border-radius: 4px; text-align: center;">
+                    <div style="font-size: 10pt; color: #059669; margin-bottom: 6px;">☀️ Potencia Pico</div>
+                    <div style="font-size: 16pt; font-weight: 700; color: #16a34a; font-family: monospace;">{{ sizing.potencia_pico_kwp }}</div>
+                    <div style="font-size: 7.5pt; color: #666; margin-top: 4px;">kWp</div>
+                </div>
+                {% endif %}
+                
+                {% if sizing.numero_paneles %}
+                <div style="padding: 12px; background: #eff6ff; border: 1px solid #93c5fd; border-radius: 4px; text-align: center;">
+                    <div style="font-size: 10pt; color: #0369a1; margin-bottom: 6px;">⬜ Paneles</div>
+                    <div style="font-size: 16pt; font-weight: 700; color: #0284c7; font-family: monospace;">{{ sizing.numero_paneles }}</div>
+                    <div style="font-size: 7.5pt; color: #666; margin-top: 4px;">Unidades</div>
+                </div>
+                {% endif %}
+                
+                {% if sizing.generacion_mensual_kwh %}
+                <div style="padding: 12px; background: #dcfce7; border: 1px solid #6ee7b7; border-radius: 4px; text-align: center;">
+                    <div style="font-size: 10pt; color: #047857; margin-bottom: 6px;">⚡ Generación</div>
+                    <div style="font-size: 16pt; font-weight: 700; color: #10b981; font-family: monospace;">{{ sizing.generacion_mensual_kwh|floatformat:0|intcomma }}</div>
+                    <div style="font-size: 7.5pt; color: #666; margin-top: 4px;">kWh/mes</div>
+                </div>
+                {% endif %}
+                
+                {% if sizing.porcentaje_cobertura %}
+                <div style="padding: 12px; background: #fef3c7; border: 1px solid #fcd34d; border-radius: 4px; text-align: center;">
+                    <div style="font-size: 10pt; color: #b45309; margin-bottom: 6px;">📈 Cobertura</div>
+                    <div style="font-size: 16pt; font-weight: 700; color: #d97706; font-family: monospace;">{{ sizing.porcentaje_cobertura|floatformat:0 }}%</div>
+                    <div style="font-size: 7.5pt; color: #666; margin-top: 4px;">del consumo</div>
+                </div>
+                {% endif %}
+            </div>
+            
+            <!-- Battery Info -->
+            {% if sizing.capacidad_baterias_kwh or sizing.autonomia_dias %}
+            <div style="padding: 12px; background: #fed7aa; border: 1px solid #fdba74; border-radius: 4px; border-left: 4px solid #f97316;">
+                <p style="margin: 0; font-size: 9pt; color: #92400e;">
+                    <strong style="font-size: 10pt;">🔋 Banco de Baterías:</strong><br/>
+                    Capacidad: <strong>{{ sizing.capacidad_baterias_kwh }} kWh</strong> · Autonomía: <strong>{{ sizing.autonomia_dias }} días</strong>
+                </p>
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        
+
+        <!-- PROJECT SIZING SUMMARY TABLE -->
+        {% if sizing.potencia_pico_kwp or sizing.numero_paneles %}
+        <div class="page-break"></div>
+        <div class="section-title">Resumen Técnico del Sistema</div>
+        <table>
+            <tbody>
+                <tr>
+                    <td style="width: 50%;"><strong>Tipo de sistema:</strong></td>
+                    <td>{{ proyecto.get_tipo_sistema_display }}</td>
+                </tr>
+                <tr>
+                    <td><strong>Potencia del sistema:</strong></td>
+                    <td class="font-mono">{{ sizing.potencia_pico_kwp|floatformat:2 }} kWp</td>
+                </tr>
+                <tr>
+                    <td><strong>Número de paneles:</strong></td>
+                    <td class="font-mono">{{ sizing.numero_paneles }}</td>
+                </tr>
+                <tr>
+                    <td><strong>Generación estimada:</strong></td>
+                    <td class="font-mono">{{ sizing.generacion_mensual_kwh|floatformat:0|intcomma }} kWh/mes</td>
+                </tr>
+                <tr>
+                    <td><strong>Cobertura solar:</strong></td>
+                    <td class="font-mono">{{ sizing.porcentaje_cobertura|floatformat:1 }}%</td>
+                </tr>
+                <tr>
+                    <td><strong>HSP promedio:</strong></td>
+                    <td class="font-mono">{{ proyecto.hsp_promedio|floatformat:2 }} h/día</td>
+                </tr>
+                <tr>
+                    <td><strong>Ahorro mensual:</strong></td>
+                    <td class="font-mono">${{ proyecto.ahorro_mensual|floatformat:0|intcomma }}</td>
+                </tr>
+                <tr>
+                    <td><strong>ROI estimado:</strong></td>
+                    <td class="font-mono">{{ proyecto.roi_anos|floatformat:1 }} años</td>
+                </tr>
+                <tr>
+                    <td><strong>Costo total del sistema:</strong></td>
+                    <td class="font-mono">${{ proyecto.costo_total|floatformat:0|intcomma }}</td>
+                </tr>
+                {% if proyecto.tipo_sistema == 'off_grid' %}
+                <tr style="background: #fed7aa;">
+                    <td><strong>Capacidad baterías:</strong></td>
+                    <td class="font-mono">{{ sizing.capacidad_baterias_kwh }} kWh</td>
+                </tr>
+                <tr style="background: #fed7aa;">
+                    <td><strong>Autonomía:</strong></td>
+                    <td class="font-mono">{{ sizing.autonomia_dias }} días</td>
+                </tr>
+                {% endif %}
+            </tbody>
+        </table>
+
+        {% endif %}
+
+        <!-- ELECTRICAL LOADS -->
+        {% if cargas %}
+        <div class="page-break-inside-avoid" style="margin-bottom: 20px; border: 1px solid #e5e7eb; border-radius: 4px; overflow: hidden; background: #ffffff;">
+            <!-- Header -->
+            <div style="padding: 16px; border-bottom: 1px solid #e5e7eb; background: #f9fafb;">
+                <h2 style="font-size: 11pt; font-weight: 700; color: #1f2937; margin: 0;">⚡ Cargas Eléctricas</h2>
+            </div>
+            
+            <!-- Table -->
+            <div style="overflow-x: auto;">
+                <table style="width: 100%; border-collapse: collapse; font-size: 8.5pt;">
+                    <thead>
+                        <tr style="background: #f3f4f6; border-bottom: 2px solid #d1d5db;">
+                            <th style="padding: 12px 8px; text-align: left; font-weight: 700; color: #374151; border-right: 1px solid #e5e7eb;">Dispositivo</th>
+                            <th style="padding: 12px 8px; text-align: center; font-weight: 700; color: #374151; border-right: 1px solid #e5e7eb;">Cant.</th>
+                            <th style="padding: 12px 8px; text-align: center; font-weight: 700; color: #374151; border-right: 1px solid #e5e7eb;">Potencia (W)</th>
+                            <th style="padding: 12px 8px; text-align: center; font-weight: 700; color: #374151; border-right: 1px solid #e5e7eb;">h/día</th>
+                            <th style="padding: 12px 8px; text-align: center; font-weight: 700; color: #374151; border-right: 1px solid #e5e7eb;">Energía (Wh/día)</th>
+                            <th style="padding: 12px 8px; text-align: center; font-weight: 700; color: #374151;">Prioridad</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for carga in cargas %}
+                        <tr style="border-bottom: 1px solid #e5e7eb; {% cycle 'background: #ffffff;' 'background: #f9fafb;' %}">
+                            <td style="padding: 12px 8px; color: #1f2937; font-weight: 600; border-right: 1px solid #e5e7eb;">{{ carga.dispositivo }}</td>
+                            <td style="padding: 12px 8px; text-align: center; color: #4b5563; border-right: 1px solid #e5e7eb;">{{ carga.cantidad }}</td>
+                            <td style="padding: 12px 8px; text-align: center; color: #4b5563; font-family: monospace; border-right: 1px solid #e5e7eb;">{{ carga.potencia_nominal_w|floatformat:0 }}</td>
+                            <td style="padding: 12px 8px; text-align: center; color: #4b5563; font-family: monospace; border-right: 1px solid #e5e7eb;">{{ carga.horas_uso_dia|floatformat:1 }}</td>
+                            <td style="padding: 12px 8px; text-align: center; color: #1f2937; font-weight: 700; font-family: monospace; border-right: 1px solid #e5e7eb;">{{ carga.energia_diaria_wh|floatformat:0 }}</td>
+                            <td style="padding: 12px 8px; text-align: center;">
+                                {% if carga.prioridad == 'esencial' %}<span style="display: inline-block; background: #fee2e2; color: #7f1d1d; padding: 4px 8px; border-radius: 3px; font-weight: 700; font-size: 7.5pt;">{{ carga.get_prioridad_display|upper }}</span>
+                                {% elif carga.prioridad == 'importante' %}<span style="display: inline-block; background: #fed7aa; color: #7c2d12; padding: 4px 8px; border-radius: 3px; font-weight: 700; font-size: 7.5pt;">{{ carga.get_prioridad_display|upper }}</span>
+                                {% else %}<span style="display: inline-block; background: #e0e7ff; color: #312e81; padding: 4px 8px; border-radius: 3px; font-weight: 700; font-size: 7.5pt;">{{ carga.get_prioridad_display|upper }}</span>{% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- DIMENSIONAMIENTO ANALYSIS SECTION -->
+        {% if sizing.potencia_pico_kwp %}<div class="page-break"></div>
+        <div class="section-title">Análisis de Dimensionamiento</div>
+        
+        <!-- Consumption vs Generation Chart -->
+        {% if chart_data.consumo_comparacion %}<div style="margin-bottom: 20px; border: 1px solid #e5e7eb; padding: 12px; background: #fafafa; border-radius: 4px;">
+            <strong style="display: block; margin-bottom: 10px; font-size: 11pt; color: #1f2937;">Consumo vs Generación Solar</strong>
+            {% if consumo_svg %}<div style="text-align: center; margin: 10px 0;">
+                {{ consumo_svg|safe }}
+            </div>{% endif %}
+            <p style="font-size: 8.5pt; line-height: 1.4; color: #1f2937; margin: 10px 0 0 0;">
+                <strong>¿Cuál es su consumo Vs el que vá generar?</strong> Su consumo mensual es de <strong>{{ chart_data.consumo_comparacion.actual|floatformat:0 }} kWh</strong>, 
+                y nuestro sistema solar generará <strong>{{ chart_data.consumo_comparacion.generacion|floatformat:0 }} kWh</strong> al mes, 
+                cubriendo el <strong>{{ chart_data.consumo_comparacion.cobertura|floatformat:1 }}%</strong> de su demanda energética. 
+                Esto significa <strong>{{ chart_data.consumo_comparacion.ahorro_kwh|floatformat:0 }} kWh de energía limpia</strong> 
+                producidos directamente en su propiedad, otorgándole <strong>independencia energética inmediata</strong> 
+                y una <strong>reducción dramática en su factura de electricidad</strong>.
+            </p>
+        </div>{% endif %}
+        
+        <!-- ROI / Financial Projection Chart -->
+        {% if chart_data.roi_years and proyecto.ahorro_mensual %}<div style="margin-bottom: 20px; border: 1px solid #e5e7eb; padding: 12px; background: #fafafa; border-radius: 4px;">
+            <strong style="display: block; margin-bottom: 10px; font-size: 11pt; color: #1f2937;">Proyección Financiera - Retorno de Inversión Acumulado</strong>
+            {% if proyeccion_svg %}<div style="text-align: center; margin: 10px 0;">
+                {{ proyeccion_svg|safe }}
+            </div>{% endif %}
+            <p style="font-size: 8.5pt; line-height: 1.4; color: #1f2937; margin: 10px 0 0 0;">
+                <strong>¿Por qué es importante?</strong> Su inversión de <strong>${{ proyecto.costo_total|floatformat:0|intcomma }}</strong> 
+                se recuperará en <strong>{{ proyecto.roi_anos|floatformat:1 }} años</strong> con ahorro anual de <strong>${{ chart_data.ahorro_anual|floatformat:0|intcomma }}</strong>. 
+                Después del punto de equilibrio, todo el dinero ahorrado es ganancia neta. Ahorro total a 25 años: <strong>${{ chart_data.ahorro_25_anos|floatformat:0|intcomma }}</strong>.
+            </p>
+        </div>{% endif %}
+        
+        <!-- Panel Installation Area -->
+        {% if panel_svg and panel_area %}<div style="margin-bottom: 20px; border: 1px solid #e5e7eb; padding: 12px; background: #fafafa; border-radius: 4px; page-break-inside: avoid;">
+            <strong style="display: block; margin-bottom: 15px; font-size: 11pt; color: #1f2937;">Área requerida para instalación</strong>
+            
+            <!-- Two-column layout using table -->
+            <table style="width: 100%; border-collapse: collapse; margin-bottom: 10px;">
+                <tbody>
+                    <tr>
+                        <!-- SVG Panel Diagram (Left Column) -->
+                        <td style="width: 50%; vertical-align: middle; text-align: center; padding: 0 20px 0 0;">
+                            {{ panel_svg|safe }}
+                        </td>
+                        
+                        <!-- Panel Info (Right Column) -->
+                        <td style="width: 50%; vertical-align: top; padding: 0 0 0 20px; border-left: 1px solid #e5e7eb;">
+                            <div style="font-size: 8.5pt; color: #374151; line-height: 1.6;">
+                                <p style="margin: 0 0 8px 0;">
+                                    <span style="font-weight: 600; color: #1f2937;">Panel de referencia:</span> 
+                                    {{ panel_area.panel_nombre }}
+                                </p>
+                                <p style="margin: 0 0 8px 0;">
+                                    <span style="font-weight: 600; color: #1f2937;">Área de un panel:</span> 
+                                    <span style="font-family: monospace;">{{ panel_area.area_panel_m2|floatformat:3 }} m²</span>
+                                </p>
+                                <p style="margin: 0 0 8px 0;">
+                                    <span style="font-weight: 600; color: #1f2937;">Número de paneles:</span> 
+                                    <span style="font-family: monospace;">{{ panel_area.numero_paneles }}</span>
+                                </p>
+                                <p style="margin: 0 0 8px 0;">
+                                    <span style="font-weight: 600; color: #1f2937;">Margen adicional:</span> 
+                                    <span style="font-family: monospace;">{{ panel_area.factor_extra }}%</span>
+                                </p>
+                                <p style="margin: 8px 0 0 0; padding: 8px 0 0 0; border-top: 1px solid #e5e7eb; font-weight: 700; color: #1f2937; font-size: 9pt;">
+                                    Área total estimada: <span style="font-family: monospace;">{{ panel_area.area_total_m2|floatformat:2 }} m²</span>
+                                </p>
+                                <p style="margin: 6px 0 0 0; font-size: 7.5pt; color: #6b7280;">
+                                    Fórmula: (largo × ancho / 1.000.000) × número de paneles × 1,10
+                                </p>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>{% endif %}
+        
+        <!-- Radiation & HSP Charts -->
+        {% if chart_data.radiacion_mensual %}<div style="margin-bottom: 20px; border: 1px solid #e5e7eb; padding: 12px; background: #fafafa; border-radius: 4px;">
+            <strong style="display: block; margin-bottom: 10px; font-size: 11pt; color: #1f2937;">Potencial Solar - Radiación Mensual (Datos PVGIS)</strong>
+            {% if radiacion_svg %}<div style="text-align: center; margin: 10px 0;">
+                {{ radiacion_svg|safe }}
+            </div>{% endif %}
+            <p style="font-size: 8.5pt; line-height: 1.4; color: #1f2937; margin: 10px 0 0 0;">
+                <strong>Análisis de radiación solar:</strong> La radiación solar promedio es de <strong>{{ chart_data.radiacion_promedio|floatformat:2 }} kWh/m²/día</strong>. 
+                El mes con menor radiación aparece en <strong style="color: #ef4444;">rojo</strong> (típicamente en meses de invierno). 
+                Estos datos certificados de PVGIS (Comisión Europea) garantizan la precisión de los cálculos del sistema.
+            </p>
+        </div>{% endif %}
+        
+        <!-- HSP Chart -->
+        {% if chart_data.hsp_mensual %}<div style="margin-bottom: 20px; border: 1px solid #e5e7eb; padding: 12px; background: #fafafa; border-radius: 4px;">
+            <strong style="display: block; margin-bottom: 10px; font-size: 11pt; color: #1f2937;">Horas Solar Pico (HSP) Mensual</strong>
+            {% if hsp_svg %}<div style="text-align: center; margin: 10px 0;">
+                {{ hsp_svg|safe }}
+            </div>{% endif %}
+            <p style="font-size: 8.5pt; line-height: 1.4; color: #1f2937; margin: 10px 0 0 0;">
+                <strong>Interpretación de HSP:</strong> Las Horas Solar Pico indican la cantidad de radiación solar concentrada en horas de máxima eficiencia. 
+                Promedio: <strong style="color: #f59e0b;">{{ chart_data.hsp_promedio|floatformat:2 }} h/día</strong> (línea naranja punteada). 
+                El mes de mayor potencial aparece en <strong style="color: #22c55e;">verde</strong> y el de menor en <strong style="color: #ef4444;">rojo</strong>.
+            </p>
+        </div>{% endif %}
+
+        <!-- COST DISTRIBUTION CHART -->
+        {% if not cotizacion.usar_total_manual and chart_data.costo_por_componente %}<div style="margin-bottom: 20px; border: 1px solid #e5e7eb; padding: 12px; background: #fafafa; border-radius: 4px;">
+            <strong style="display: block; margin-bottom: 10px; font-size: 11pt; color: #1f2937;">Distribución de Costos del Sistema</strong>
+            {% if costo_svg %}<div style="text-align: center; margin: 10px 0;">
+                {{ costo_svg|safe }}
+            </div>{% endif %}
+            <p style="font-size: 8.5pt; line-height: 1.4; color: #1f2937; margin: 10px 0 0 0;">
+                <strong>Desglose de inversión:</strong> El costo total se distribuye entre componentes principales del sistema solar. 
+                Esta visualización muestra dónde se invierte cada peso, permitiendo transparencia en los costos y facilitando decisiones informadas sobre la inversión.
+            </p>
+        </div>{% endif %}
+        
+        {% endif %}
+
+        <!-- CONDITIONS -->
+        {% if cotizacion.condiciones %}
+        <div class="conditions-box">
+            <strong>Condiciones Comerciales:</strong>
+            <p>{{ cotizacion.condiciones }}</p>
+        </div>
+        {% endif %}
+
+        <!-- FOOTER -->
+        <div class="footer">
+            <p><strong>{{ company.name|default:"EMPRESA SOLAR" }}</strong></p>
+            {% if company.phone or company.email %}
+            <p>
+                {% if company.phone %}{{ company.phone }}{% endif %}
+                {% if company.phone and company.email %}•{% endif %}
+                {% if company.email %}{{ company.email }}{% endif %}
+            </p>
+            {% endif %}
+            <p style="margin-top: 8px; font-size: 7pt; color: #999;">
+                Documento generado el {{ now|date:"d/m/Y H:i" }} | SolarQuote<br/>
+                Este documento no constituye factura de venta.
+            </p>
+        </div>
+
+    </div>
+</body>
+</html>

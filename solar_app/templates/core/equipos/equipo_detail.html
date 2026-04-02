@@ -92,11 +92,32 @@
                 </div>
             </div>
 
-            {% if equipo.ficha_tecnica %}
-            <div class="mt-4">
-                <a href="{{ equipo.ficha_tecnica.url }}" target="_blank" class="btn-secondary text-sm">
-                    <i class="fas fa-file-pdf text-red-500 text-xs"></i> Descargar ficha técnica
-                </a>
+            {% if equipo.archivos.exists %}
+            <div class="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-soft">
+                <p class="text-sm font-semibold text-blue-800 mb-3">
+                    <i class="fas fa-file-pdf text-red-500 mr-2"></i>Documentos disponibles:
+                </p>
+                <div class="space-y-2">
+                    {% for archivo in equipo.archivos.all %}
+                    <div class="flex items-center justify-between p-2 bg-white rounded border border-blue-100">
+                        <div>
+                            <p class="text-sm font-medium text-ink-800">{{ archivo.nombre }}</p>
+                            <p class="text-xs text-ink-500">
+                                <i class="fas fa-calendar-alt mr-1"></i>
+                                {{ archivo.fecha_creacion|date:"d/m/Y H:i" }}
+                                {% if archivo.equipos.count > 1 %}
+                                <span class="ml-2 px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded">
+                                    Compartido con {{ archivo.equipos.count|add:"-1" }} equipo(s)
+                                </span>
+                                {% endif %}
+                            </p>
+                        </div>
+                        <a href="{{ archivo.archivo.url }}" class="text-sm text-solar-600 hover:text-solar-700 font-medium" target="_blank">
+                            <i class="fas fa-download mr-1"></i> Descargar
+                        </a>
+                    </div>
+                    {% endfor %}
+                </div>
             </div>
             {% endif %}
         </div>

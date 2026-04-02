@@ -7,10 +7,11 @@ from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from core.permissions import IsProjectOwnerOrAdmin
-from core.api_serializers import (
+from core.api.permissions import IsProjectOwnerOrAdmin
+from core.api.serializers import (
     EquipmentFilterQuerySerializer,
     EquipmentQuantityUpdateSerializer,
+    EquipmentSelectionUpdateSerializer,
     EquipmentSelectSerializer,
     SuccessEnvelopeSerializer,
 )
@@ -19,10 +20,12 @@ from core.services.equipment_selection_service import (
     ServiceNotFoundError,
     ServiceValidationError,
     check_compatibility,
+    list_selected_equipment,
     list_available_equipment,
     recalculate_generation,
     remove_equipment,
     select_equipment,
+    update_selected_equipment,
     update_equipment_quantity,
 )
 
@@ -80,6 +83,67 @@ class ProjectEquipmentViewSet(viewsets.GenericViewSet):
                 {"success": False, "error": str(exc)},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+
+    @action(detail=True, methods=["get"], url_path="equipment-selections")
+    @extend_schema(request=None, responses=SuccessEnvelopeSerializer)
+    def list_equipment_selections(self, request, pk=None):
+        """REST collection endpoint: list selected equipment for a project."""
+        return self._service_response(
+            request=request,
+            project_id=pk,
+            callable_fn=lambda: list_selected_equipment(project_id=pk),
+        )
+
+    @action(detail=True, methods=["post"], url_path="equipment-selections")
+    @extend_schema(request=EquipmentSelectSerializer, responses=SuccessEnvelopeSerializer)
+    def create_equipment_selection(self, request, pk=None):
+        """REST collection endpoint: create selected equipment for a project."""
+        serializer = EquipmentSelectSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        return self._service_response(
+            request=request,
+            project_id=pk,
+            callable_fn=lambda: select_equipment(
+                project_id=pk,
+                payload=serializer.validated_data,
+            ),
+        )
+
+    @action(
+        detail=True,
+        methods=["patch", "delete"],
+        url_path=r"equipment-selections/(?P<selection_id>[^/.]+)",
+    )
+    @extend_schema(
+        request=EquipmentSelectionUpdateSerializer,
+        parameters=[
+            OpenApiParameter("selection_id", OpenApiTypes.INT, OpenApiParameter.PATH),
+        ],
+        responses=SuccessEnvelopeSerializer,
+    )
+    def equipment_selection_detail(self, request, pk=None, selection_id=None):
+        """REST detail endpoint: patch or delete a selected equipment resource."""
+        if request.method.lower() == "patch":
+            serializer = EquipmentSelectionUpdateSerializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            return self._service_response(
+                request=request,
+                project_id=pk,
+                callable_fn=lambda: update_selected_equipment(
+                    project_id=pk,
+                    selection_id=selection_id,
+                    payload=serializer.validated_data,
+                ),
+            )
+
+        return self._service_response(
+            request=request,
+            project_id=pk,
+            callable_fn=lambda: remove_equipment(
+                project_id=pk,
+                selection_id=selection_id,
+            ),
+        )
 
     @action(detail=True, methods=["post"], url_path="equipment/select")
     @extend_schema(request=EquipmentSelectSerializer, responses=SuccessEnvelopeSerializer)

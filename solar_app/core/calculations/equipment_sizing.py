@@ -106,22 +106,22 @@ def estimate_system_losses(
         
         if tipo == 'panel':
             # Panel efficiency impact
-            panel_loss = (1 - (equipo.eficiencia or 0.90) / 100) * 100
+            panel_loss = (1 - (float(equipo.eficiencia or 0.90) / 100)) * 100
             losses['paneles'] = max(1.0, min(5.0, panel_loss))
             
         elif tipo == 'inversor':
             # Inversor efficiency impact
-            inversor_loss = (1 - (equipo.eficiencia or 0.93) / 100) * 100
+            inversor_loss = (1 - (float(equipo.eficiencia or 0.93) / 100)) * 100
             losses['inversor'] = max(2.0, min(8.0, inversor_loss))
     
     # Calculate total loss using compound formula
     # Total loss ≈ 100 - (100 × (1 - loss1%)(1 - loss2%)...)
     loss_factors = [
-        (100 - losses['paneles']) / 100,
-        (100 - losses['inversor']) / 100,
-        (100 - losses['cableado']) / 100,
-        (100 - losses['transformador']) / 100,
-        (100 - losses['otros']) / 100,
+        float((100 - losses['paneles']) / 100),
+        float((100 - losses['inversor']) / 100),
+        float((100 - losses['cableado']) / 100),
+        float((100 - losses['transformador']) / 100),
+        float((100 - losses['otros']) / 100),
     ]
     
     combined_survival = 1.0
@@ -384,7 +384,7 @@ def calculate_generation_with_equipment(
     # 10. AREA REQUIRED
     # Approximate: modern panels ~550W with ~2.2m² area
     area_panel_m2 = 2.278 * 1.134  # ~2.58 m²
-    result.area_requerida_m2 = round(numero_paneles_total * area_panel_m2 / 10, 1)
+    result.area_requerida_m2 = round(numero_paneles_total * area_panel_m2, 1)
     
     return result
 

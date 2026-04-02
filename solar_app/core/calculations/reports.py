@@ -18,7 +18,7 @@ from reportlab.lib.units import inch, mm
 from reportlab.lib.enums import TA_CENTER, TA_RIGHT, TA_LEFT, TA_JUSTIFY
 from reportlab.platypus import (
     SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle,
-    Image, HRFlowable, PageBreak,
+    Image, HRFlowable, PageBreak, KeepTogether,
 )
 from reportlab.graphics.shapes import Drawing, Rect, String, Line
 from reportlab.graphics.charts.piecharts import Pie
@@ -35,7 +35,7 @@ from openpyxl.styles import (
 )
 from openpyxl.utils import get_column_letter
 
-from .chart_data import build_cotizacion_charts_payload
+from core.calculations.chart_data import build_cotizacion_charts_payload, _calculate_sizing_from_items
 
 
 logger = logging.getLogger(__name__)
@@ -58,7 +58,7 @@ def _fmt_cop(value):
 
 def _company_info():
     """Retrieve company info from DB (CompanySettings) with fallback to settings."""
-    from .models import CompanySettings
+    from core.models import CompanySettings
     try:
         obj = CompanySettings.load()
         return {
@@ -192,6 +192,20 @@ def _get_styles():
 
 
 # ═══════════════════════════════════════════════════════
+#  PDF GENERATION HELPERS
+# ═══════════════════════════════════════════════════════
+
+def _group_section(title_para, elements):
+    """
+    Group a title with its content elements into a single unit.
+    Helps prevent orphaned titles at page breaks.
+    """
+    if not elements:
+        return [title_para]
+    return [title_para] + (elements if isinstance(elements, list) else [elements])
+
+
+# ═══════════════════════════════════════════════════════
 #  PDF GENERATION
 # ═══════════════════════════════════════════════════════
 
@@ -204,8 +218,8 @@ def generar_pdf_cotizacion(cotizacion):
     doc = SimpleDocTemplate(
         buffer,
         pagesize=letter,
-        topMargin=0.6 * inch,
-        bottomMargin=0.6 * inch,
+        topMargin=0.5 * inch,
+        bottomMargin=0.5 * inch,
         leftMargin=0.7 * inch,
         rightMargin=0.7 * inch,
         title=f"Cotización {cotizacion.numero}",
@@ -220,9 +234,12 @@ def generar_pdf_cotizacion(cotizacion):
     if requires_charts:
         chart_payload = build_cotizacion_charts_payload(cotizacion)
 
+    # Calculate sizing from items (single source of truth)
+    sizing_from_items = _calculate_sizing_from_items(cotizacion, proyecto)
+
     # ─── Header ───
     story.append(_build_header(cotizacion, company, styles))
-    story.append(Spacer(1, 12))
+    story.append(Spacer(1, 8))
     story.append(HRFlowable(
         width="100%", thickness=2, color=SOLAR_AMBER,
         spaceAfter=12, spaceBefore=0,
@@ -230,7 +247,7 @@ def generar_pdf_cotizacion(cotizacion):
 
     # ─── Client & Project Info ───
     story.append(_build_info_section(cotizacion, cliente, proyecto, styles))
-    story.append(Spacer(1, 10))
+    story.append(Spacer(1, 6))
 
     # ─── Items Table ───
     if not cotizacion.usar_total_manual:
@@ -240,31 +257,40 @@ def generar_pdf_cotizacion(cotizacion):
 
     # ─── Totals ───
     story.append(_build_totals_table(cotizacion, styles))
-    story.append(Spacer(1, 14))
+    story.append(Spacer(1, 8))
 
     # ─── Executive Summary (persuasive, commercial) ───
     story.append(_build_executive_summary(cotizacion, proyecto, styles))
-    story.append(Spacer(1, 10))
+    story.append(Spacer(1, 6))
 
     # ─── Inventory Selection Rationale ───
     if not cotizacion.usar_total_manual:
         story.append(_build_equipment_selection_note(cotizacion, proyecto, styles))
-        story.append(Spacer(1, 10))
+        story.append(Spacer(1, 6))
+
+    # ─── Sizing Results Block (kWp, paneles, generación, cobertura, baterías) ───
+    story.append(_build_sizing_results_block(sizing_from_items, proyecto, styles))
+    story.append(Spacer(1, 6))
 
     # ─── Project Sizing Summary ───
-    if proyecto.potencia_pico_kwp:
+    if sizing_from_items.get('potencia_pico_kwp') or sizing_from_items.get('numero_paneles'):
         story.append(PageBreak())
         story.append(Paragraph("Resumen Técnico del Sistema", styles['SectionTitle']))
-        story.append(_build_sizing_summary(proyecto, styles))
-        story.append(Spacer(1, 10))
+        story.append(_build_sizing_summary(sizing_from_items, proyecto, styles))
+        story.append(Spacer(1, 6))
 
-    # ─── Cost Distribution Chart ───
-    if not cotizacion.usar_total_manual and chart_payload:
-        dist = chart_payload.get('costo_por_componente', {})
-        if dist.get('labels') and dist.get('values'):
-            story.append(Paragraph("Distribución de Costos", styles['SectionTitle']))
-            story.append(_build_cost_pie_chart(chart_payload, styles))
-            story.append(Spacer(1, 10))
+        panel_area = _calculate_panel_area_data(cotizacion)
+        if panel_area:
+            story.append(Paragraph("Área requerida para instalación", styles['SectionTitle']))
+            story.append(_build_panel_area_block(panel_area, styles))
+            story.append(Spacer(1, 6))
+
+    # ─── Electrical Loads (Off-grid) ───
+    cargas_table = _build_cargas_table(proyecto, styles)
+    if cargas_table:
+        story.append(Paragraph("Cargas Eléctricas", styles['SectionTitle']))
+        story.append(cargas_table)
+        story.append(Spacer(1, 6))
 
     # ─── Dimensionamiento Charts (page break for better layout) ───
     if proyecto.potencia_pico_kwp:
@@ -281,7 +307,7 @@ def generar_pdf_cotizacion(cotizacion):
         generacion = float(consumo_data.get('generacion', 0))
         if consumo > 0:
             story.append(_build_consumption_bar_chart(chart_payload, styles))
-            story.append(Spacer(1, 8))
+            story.append(Spacer(1, 4))  # Tighter spacing - keep chart & text together
             cobertura = (generacion / consumo * 100) if consumo > 0 else 0
             ahorro_kwh = generacion if generacion <= consumo else consumo
             texto_consumo = (
@@ -292,14 +318,14 @@ def generar_pdf_cotizacion(cotizacion):
                 f"Produce su propia energía limpia, segura y renovable, liberándose de la volatilidad de los precios."
             )
             story.append(Paragraph(texto_consumo, styles['ExplainText']))
-            story.append(Spacer(1, 10))
+            story.append(Spacer(1, 6))
 
         # Financial Projection (ROI)
         ahorro_anual = float(proyecto.ahorro_mensual or 0) * 12
         costo_total = float(proyecto.costo_total or 0)
         if ahorro_anual > 0 and costo_total > 0:
             story.append(_build_roi_chart(chart_payload, styles))
-            story.append(Spacer(1, 8))
+            story.append(Spacer(1, 4))  # Tighter spacing - keep chart & text together
             roi_anos = costo_total / ahorro_anual if ahorro_anual > 0 else 0
             ahorro_25_anos = ahorro_anual * 25
             texto_roi = (
@@ -310,7 +336,7 @@ def generar_pdf_cotizacion(cotizacion):
                 f"Representa <b>seguridad financiera</b> a largo plazo, blindándose contra futuros aumentos en tarifas."
             )
             story.append(Paragraph(texto_roi, styles['ExplainText']))
-            story.append(Spacer(1, 10))
+            story.append(Spacer(1, 6))
 
         # PVGIS Radiation & HSP Charts
         radiacion_mensual = (chart_payload or {}).get('radiacion_mensual', [])
@@ -318,9 +344,9 @@ def generar_pdf_cotizacion(cotizacion):
         hsp_prom = float((chart_payload or {}).get('hsp_promedio') or 0)
         if radiacion_mensual:
                 story.append(_build_radiation_bar_chart(chart_payload, styles))
-                story.append(Spacer(1, 8))
+                story.append(Spacer(1, 4))  # Tighter spacing
                 story.append(_build_hsp_bar_chart(chart_payload, styles))
-                story.append(Spacer(1, 8))
+                story.append(Spacer(1, 4))  # Tighter spacing before description
                 radiacion_promedio = sum(radiacion_mensual) / len(radiacion_mensual) if radiacion_mensual else 0
                 texto_radiacion = (
                     f"<b>¿Cuál es su potencial de generación solar real?</b> Su zona tiene una radiación solar promedio de <b>{radiacion_promedio:.2f} kWh/m²/día</b> "
@@ -330,16 +356,39 @@ def generar_pdf_cotizacion(cotizacion):
                     f"y máximo ahorro económico. Esta es una oportunidad única para aprovechar un recurso natural confiable, predecible y completamente gratis."
                 )
                 story.append(Paragraph(texto_radiacion, styles['ExplainText']))
-                story.append(Spacer(1, 10))
+                story.append(Spacer(1, 6))
 
-    # ─── Conditions ───
+    # ─── Cost Distribution Chart ───
+    if not cotizacion.usar_total_manual and chart_payload:
+        dist = chart_payload.get('costo_por_componente', {})
+        if dist.get('labels') and dist.get('values'):
+            story.append(Paragraph("Distribución de Costos", styles['SectionTitle']))
+            story.append(_build_cost_pie_chart(chart_payload, styles))
+            story.append(Spacer(1, 6))
+
+    # ─── Conditions (keep title with content using KeepTogether) ───
     if cotizacion.condiciones:
-        story.append(Paragraph("Condiciones Comerciales", styles['SectionTitle']))
+        title_para = Paragraph("Condiciones Comerciales", styles['SectionTitle'])
+        condition_lines = []
         for line in cotizacion.condiciones.split('\n'):
             line = line.strip()
             if line:
-                story.append(Paragraph(line, styles['ConditionsText']))
-        story.append(Spacer(1, 8))
+                condition_lines.append(Paragraph(line, styles['ConditionsText']))
+        
+        if condition_lines:
+            # Wrap all conditions in table and use KeepTogether to prevent page breaks
+            all_content = [title_para] + condition_lines
+            conditions_table = Table([[item] for item in all_content], colWidths=[6.9 * inch])
+            conditions_table.setStyle(TableStyle([
+                ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                ('TOPPADDING', (0, 0), (-1, -1), 0),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
+                ('LEFTPADDING', (0, 0), (-1, -1), 0),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 0),
+            ]))
+            # KeepTogether ensures entire block stays on same page
+            story.append(KeepTogether(conditions_table))
+            story.append(Spacer(1, 8))
 
     # ─── Footer note ───
     story.append(HRFlowable(
@@ -606,6 +655,68 @@ def _build_totals_table(cotizacion, styles):
     return table
 
 
+def _build_cargas_table(proyecto, styles):
+    """Build the electrical loads table for off-grid projects."""
+    cargas = proyecto.cargas.all()
+    if not cargas:
+        return None
+
+    header = [
+        Paragraph('<b>Dispositivo</b>', styles['CellText']),
+        Paragraph('<b>Cant.</b>', styles['CellText']),
+        Paragraph('<b>Potencia (W)</b>', styles['CellText']),
+        Paragraph('<b>Horas/día</b>', styles['CellText']),
+        Paragraph('<b>Energía (Wh/día)</b>', styles['CellText']),
+        Paragraph('<b>Prioridad</b>', styles['CellText']),
+    ]
+    data = [header]
+
+    for carga in cargas:
+        prioridad_color = {
+            'esencial': '#dc2626',
+            'importante': '#f59e0b',
+            'opcional': '#9ca3af'
+        }.get(carga.prioridad, '#9ca3af')
+        
+        data.append([
+            Paragraph(carga.dispositivo, styles['CellText']),
+            Paragraph(str(carga.cantidad), styles['CellText']),
+            Paragraph(str(int(carga.potencia_nominal_w)), styles['CellText']),
+            Paragraph(str(carga.horas_uso_dia), styles['CellText']),
+            Paragraph(f"<b>{int(carga.energia_diaria_wh)}</b>", styles['CellText']),
+            Paragraph(
+                f"<font color='{prioridad_color}'><b>{carga.get_prioridad_display()}</b></font>",
+                styles['CellText']
+            ),
+        ])
+
+    col_widths = [2.0 * inch, 0.5 * inch, 1.1 * inch, 1.0 * inch, 1.3 * inch, 1.1 * inch]
+
+    table = Table(data, colWidths=col_widths, repeatRows=1)
+    table_style = [
+        # Header
+        ('BACKGROUND', (0, 0), (-1, 0), HEADER_BG),
+        ('TEXTCOLOR', (0, 0), (-1, 0), HEADER_TEXT),
+        ('FONTSIZE', (0, 0), (-1, -1), 8),
+        ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
+        ('ALIGN', (1, 1), (-1, -1), 'CENTER'),
+        # Grid
+        ('LINEBELOW', (0, 0), (-1, -1), 0.5, BORDER_COLOR),
+        ('TOPPADDING', (0, 0), (-1, -1), 4),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('BOX', (0, 0), (-1, -1), 0.5, BORDER_COLOR),
+    ]
+
+    # Alternate row colors
+    for idx in range(1, len(data)):
+        if idx % 2 == 0:
+            table_style.append(('BACKGROUND', (0, idx), (-1, idx), ROW_ALT))
+
+    table.setStyle(TableStyle(table_style))
+    return table
+
+
 def _build_executive_summary(cotizacion, proyecto, styles):
     """Commercial summary card with persuasive key indicators."""
     ahorro_anual = float(proyecto.ahorro_mensual or 0) * 12
@@ -654,6 +765,166 @@ def _build_executive_summary(cotizacion, proyecto, styles):
     return wrapper
 
 
+def _build_sizing_results_block(sizing, proyecto, styles):
+    """
+    Build 'Resultado del dimensionamiento' block with metrics cards.
+    Replicates HTML proyecto_detail.html layout with clean, simple design.
+    """
+    # Title
+    title = Paragraph(
+        "<b>Resultado del dimensionamiento</b>",
+        styles['SectionTitle'],
+    )
+    
+    # Get values
+    potencia_pico = sizing.get('potencia_pico_kwp', 0) or proyecto.potencia_pico_kwp or 0
+    numero_paneles = sizing.get('numero_paneles') or proyecto.numero_paneles or 0
+    generacion_mensual = sizing.get('generacion_mensual_kwh', 0) or proyecto.generacion_mensual_kwh or 0
+    cobertura = sizing.get('porcentaje_cobertura', 0) or proyecto.porcentaje_cobertura or 0
+    
+    # Build individual metric cells (simpler, cleaner)
+    metric1_data = [
+        [Paragraph(f"<b>{potencia_pico}</b>", ParagraphStyle(
+            'MetricValue',
+            parent=styles['Normal'],
+            fontSize=16,
+            textColor=SOLAR_AMBER,
+            alignment=TA_CENTER,
+            fontName='Helvetica-Bold',
+        ))],
+        [Paragraph("kWp instalados", styles['ExecutiveLabel'])],
+    ]
+    metric1 = Table(metric1_data, colWidths=[1.6 * inch])
+    metric1.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#fef3c7')),
+        ('BOX', (0, 0), (-1, -1), 0.8, SOLAR_AMBER),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('TOPPADDING', (0, 0), (-1, -1), 10),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
+        ('ROWSPACER', (0, 0), (-1, 0), 4),
+    ]))
+    
+    metric2_data = [
+        [Paragraph(f"<b>{numero_paneles}</b>", ParagraphStyle(
+            'MetricValue2',
+            parent=styles['Normal'],
+            fontSize=16,
+            textColor=CORP_DARK,
+            alignment=TA_CENTER,
+            fontName='Helvetica-Bold',
+        ))],
+        [Paragraph("Paneles", styles['ExecutiveLabel'])],
+    ]
+    metric2 = Table(metric2_data, colWidths=[1.6 * inch])
+    metric2.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, -1), colors.white),
+        ('BOX', (0, 0), (-1, -1), 0.8, BORDER_COLOR),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('TOPPADDING', (0, 0), (-1, -1), 10),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
+        ('ROWSPACER', (0, 0), (-1, 0), 4),
+    ]))
+    
+    metric3_data = [
+        [Paragraph(f"<b>{generacion_mensual:.0f}</b>", ParagraphStyle(
+            'MetricValue3',
+            parent=styles['Normal'],
+            fontSize=16,
+            textColor=SOLAR_GREEN,
+            alignment=TA_CENTER,
+            fontName='Helvetica-Bold',
+        ))],
+        [Paragraph("kWh/mes generados", styles['ExecutiveLabel'])],
+    ]
+    metric3 = Table(metric3_data, colWidths=[1.6 * inch])
+    metric3.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, -1), colors.white),
+        ('BOX', (0, 0), (-1, -1), 0.8, BORDER_COLOR),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('TOPPADDING', (0, 0), (-1, -1), 10),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
+        ('ROWSPACER', (0, 0), (-1, 0), 4),
+    ]))
+    
+    metric4_data = [
+        [Paragraph(f"<b>{cobertura:.0f}%</b>", ParagraphStyle(
+            'MetricValue4',
+            parent=styles['Normal'],
+            fontSize=16,
+            textColor=colors.HexColor('#2563eb'),
+            alignment=TA_CENTER,
+            fontName='Helvetica-Bold',
+        ))],
+        [Paragraph("Cobertura solar", styles['ExecutiveLabel'])],
+    ]
+    metric4 = Table(metric4_data, colWidths=[1.6 * inch])
+    metric4.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, -1), colors.white),
+        ('BOX', (0, 0), (-1, -1), 0.8, BORDER_COLOR),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('TOPPADDING', (0, 0), (-1, -1), 10),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
+        ('ROWSPACER', (0, 0), (-1, 0), 4),
+    ]))
+    
+    # 2x2 grid with proper spacing
+    metrics_grid = Table(
+        [[metric1, metric2],
+         [metric3, metric4]],
+        colWidths=[2.0 * inch, 2.0 * inch],
+        hAlign='LEFT',
+    )
+    metrics_grid.setStyle(TableStyle([
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('LEFTPADDING', (0, 0), (-1, -1), 2),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 2),
+        ('TOPPADDING', (0, 0), (-1, -1), 0),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+    ]))
+    
+    # Build content list
+    content = [[title], [metrics_grid]]
+    
+    # Add battery info for off-grid systems (use getattr for safety)
+    capacidad_bat = sizing.get('capacidad_baterias_kwh') or getattr(proyecto, 'capacidad_baterias_kwh', None)
+    autonomia = sizing.get('autonomia_dias') or getattr(proyecto, 'autonomia_dias', None)
+    
+    if proyecto.tipo_sistema == 'off_grid' and (capacidad_bat or autonomia):
+        battery_text = Paragraph(
+            f"<b>Banco de baterías:</b> Capacidad: <b>{capacidad_bat} kWh</b> · Autonomía: <b>{autonomia} días</b>",
+            styles['InventoryNote'],
+        )
+        battery_box = Table([[battery_text]], colWidths=[6.5 * inch])
+        battery_box.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#fed7aa')),
+            ('BOX', (0, 0), (-1, -1), 1, colors.HexColor('#f59e0b')),
+            ('LEFTPADDING', (0, 0), (-1, -1), 8),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 8),
+            ('TOPPADDING', (0, 0), (-1, -1), 6),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+        ]))
+        content.append([Spacer(1, 6)])
+        content.append([battery_box])
+    
+    # Wrap in container
+    wrapper = Table(content, colWidths=[6.9 * inch])
+    wrapper.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#f9fafb')),
+        ('BOX', (0, 0), (-1, -1), 1, colors.HexColor('#d1d5db')),
+        ('LEFTPADDING', (0, 0), (-1, -1), 8),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 8),
+        ('TOPPADDING', (0, 0), (-1, -1), 6),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+    ]))
+    return wrapper
+
+
 def _build_equipment_selection_note(cotizacion, proyecto, styles):
     """Explain inventory-backed equipment selection and technical coherence."""
     items = list(cotizacion.items.select_related('equipo').all())
@@ -681,15 +952,18 @@ def _build_equipment_selection_note(cotizacion, proyecto, styles):
     return container
 
 
-def _build_sizing_summary(proyecto, styles):
-    """Table with technical sizing data for the project."""
+def _build_sizing_summary(sizing, proyecto, styles):
+    """
+    Table with technical sizing data for the project.
+    Uses sizing dict calculated from cotizacion items (single source of truth).
+    """
     data = []
     fields = [
         ('Tipo de sistema', proyecto.get_tipo_sistema_display()),
-        ('Potencia del sistema', f"{proyecto.potencia_pico_kwp:.2f} kWp" if proyecto.potencia_pico_kwp else '—'),
-        ('Número de paneles', str(proyecto.numero_paneles or '—')),
-        ('Generación estimada', f"{proyecto.generacion_mensual_kwh:.0f} kWh/mes" if proyecto.generacion_mensual_kwh else '—'),
-        ('Cobertura solar', f"{proyecto.porcentaje_cobertura:.1f}%" if proyecto.porcentaje_cobertura else '—'),
+        ('Potencia del sistema', f"{sizing.get('potencia_pico_kwp', 0):.2f} kWp" if sizing.get('potencia_pico_kwp') else '—'),
+        ('Número de paneles', str(sizing.get('numero_paneles') or '—')),
+        ('Generación estimada', f"{sizing.get('generacion_mensual_kwh', 0):.0f} kWh/mes" if sizing.get('generacion_mensual_kwh') else '—'),
+        ('Cobertura solar', f"{sizing.get('porcentaje_cobertura', 0):.1f}%" if sizing.get('porcentaje_cobertura') else '—'),
         ('HSP promedio', f"{proyecto.hsp_promedio:.2f} h/día" if proyecto.hsp_promedio else '—'),
         ('Ahorro mensual', _fmt_cop(proyecto.ahorro_mensual) if proyecto.ahorro_mensual else '—'),
         ('ROI estimado', f"{proyecto.roi_anos:.1f} años" if proyecto.roi_anos else '—'),
@@ -698,10 +972,10 @@ def _build_sizing_summary(proyecto, styles):
 
     # Add battery info for off-grid systems
     if proyecto.tipo_sistema == 'off_grid':
-        if proyecto.capacidad_baterias_kwh:
-            fields.append(('Capacidad baterías', f"{proyecto.capacidad_baterias_kwh:.1f} kWh"))
-        if proyecto.autonomia_dias:
-            fields.append(('Autonomía', f"{proyecto.autonomia_dias:.1f} días"))
+        if sizing.get('capacidad_baterias_kwh'):
+            fields.append(('Capacidad baterías', f"{sizing.get('capacidad_baterias_kwh', 0):.1f} kWh"))
+        if sizing.get('autonomia_dias'):
+            fields.append(('Autonomía', f"{sizing.get('autonomia_dias', 0):.1f} días"))
 
     for label, value in fields:
         data.append([
@@ -717,6 +991,109 @@ def _build_sizing_summary(proyecto, styles):
         ('BACKGROUND', (0, 0), (0, -1), colors.HexColor('#fef9c3')),
     ]))
     return table
+
+
+def _calculate_panel_area_data(cotizacion):
+    """Compute panel area metrics using panel dimensions and quantity in quote items."""
+    panel_items = [
+        item for item in cotizacion.items.select_related('equipo').all()
+        if item.equipo.categoria == 'panel' and item.equipo.largo_mm and item.equipo.ancho_mm
+    ]
+    if not panel_items:
+        return None
+
+    panel_ref = panel_items[0]
+    largo_mm = float(panel_ref.equipo.largo_mm)
+    ancho_mm = float(panel_ref.equipo.ancho_mm)
+    area_panel_m2 = (largo_mm * ancho_mm) / 1_000_000
+    numero_paneles = sum(int(item.cantidad or 0) for item in panel_items)
+    area_total_m2 = area_panel_m2 * numero_paneles * 1.10
+
+    return {
+        'panel_nombre': panel_ref.equipo.nombre,
+        'largo_mm': largo_mm,
+        'ancho_mm': ancho_mm,
+        'area_panel_m2': area_panel_m2,
+        'numero_paneles': numero_paneles,
+        'area_total_m2': area_total_m2,
+    }
+
+
+def _build_panel_area_block(panel_area, styles):
+    """Build panel drawing + area formula block for PDF report."""
+    drawing = Drawing(220, 140)
+    drawing.add(Rect(20, 20, 140, 90, rx=4, ry=4,
+                     fillColor=colors.HexColor('#0f172a'),
+                     strokeColor=colors.HexColor('#1e293b'), strokeWidth=2))
+
+    for x in [45, 70, 95, 120, 145]:
+        drawing.add(Line(x, 20, x, 110, strokeColor=colors.HexColor('#334155'), strokeWidth=0.8))
+    for y in [38, 56, 74, 92]:
+        drawing.add(Line(20, y, 160, y, strokeColor=colors.HexColor('#334155'), strokeWidth=0.8))
+
+    drawing.add(Line(20, 12, 160, 12, strokeColor=colors.HexColor('#0f766e'), strokeWidth=1.3))
+    largo_m = panel_area['largo_mm'] / 1000
+    drawing.add(String(90, 2, f"Largo: {largo_m:.2f} m",
+                       fontSize=8, fillColor=colors.HexColor('#0f766e'), textAnchor='middle'))
+
+    drawing.add(Line(176, 20, 176, 110, strokeColor=colors.HexColor('#f59e0b'), strokeWidth=1.3))
+    ancho_m = panel_area['ancho_mm'] / 1000
+    drawing.add(String(182, 64, f"Ancho: {ancho_m:.2f} m",
+                       fontSize=8, fillColor=colors.HexColor('#f59e0b')))
+
+    # Truncate long panel names for better fitting
+    panel_name = panel_area['panel_nombre']
+    if len(panel_name) > 50:
+        panel_name = panel_name[:47] + '...'
+    
+    # Use smaller font with better wrapping
+    panel_style = ParagraphStyle(
+        name='PanelName',
+        parent=styles['CellText'],
+        fontSize=7,
+        leading=10,
+        alignment=TA_LEFT,
+        wordWrap='CJK'
+    )
+
+    metrics = [
+        [Paragraph('<b>Panel de referencia</b>', styles['CellText']), Paragraph(f"{panel_name}", panel_style)],
+        [Paragraph('<b>Área de un panel</b>', styles['CellText']), Paragraph(f"{panel_area['area_panel_m2']:.3f} m²", styles['CellText'])],
+        [Paragraph('<b>Número de paneles</b>', styles['CellText']), Paragraph(str(panel_area['numero_paneles']), styles['CellText'])],
+        [Paragraph('<b>Margen adicional</b>', styles['CellText']), Paragraph('10%', styles['CellText'])],
+        [Paragraph('<b>Área total estimada</b>', styles['CellText']), Paragraph(f"{panel_area['area_total_m2']:.2f} m²", styles['CellText'])],
+    ]
+    table = Table(metrics, colWidths=[1.8 * inch, 3.0 * inch])
+    table.setStyle(TableStyle([
+        ('LINEBELOW', (0, 0), (-1, -1), 0.5, BORDER_COLOR),
+        ('TOPPADDING', (0, 0), (-1, -1), 3),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
+        ('LEFTPADDING', (1, 0), (1, 0), 4),
+        ('RIGHTPADDING', (1, 0), (1, 0), 4),
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('ALIGN', (1, 0), (1, 0), 'LEFT'),
+        ('BACKGROUND', (0, -1), (-1, -1), colors.HexColor('#fffbeb')),
+    ]))
+
+    formula = Paragraph(
+        'Fórmula: (largo × ancho / 1.000.000) × número de paneles × 1,10',
+        styles['SmallText'],
+    )
+
+    wrapper = Table(
+        [[drawing, table], ['', formula]],
+        colWidths=[3.0 * inch, 3.6 * inch],
+    )
+    wrapper.setStyle(TableStyle([
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('BOX', (0, 0), (-1, -1), 0.8, BORDER_COLOR),
+        ('LEFTPADDING', (0, 0), (-1, -1), 8),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 8),
+        ('TOPPADDING', (0, 0), (-1, -1), 6),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+        ('SPAN', (0, 1), (0, 1)),
+    ]))
+    return wrapper
 
 
 def _build_cost_pie_chart(chart_payload, _styles=None):
@@ -1125,6 +1502,9 @@ def generar_excel_cotizacion(cotizacion):
     proyecto = cotizacion.proyecto
     cliente = proyecto.cliente
 
+    # Calculate sizing from items (single source of truth)
+    sizing_from_items = _calculate_sizing_from_items(cotizacion, proyecto)
+
     # ─── Styles ───
     header_font = Font(name='Calibri', size=11, bold=True, color='FFFFFF')
     header_fill = PatternFill(start_color='F59E0B', end_color='F59E0B', fill_type='solid')
@@ -1313,7 +1693,7 @@ def generar_excel_cotizacion(cotizacion):
     # ══════════════════════════════
     # SHEET 2: Resumen Técnico
     # ══════════════════════════════
-    if proyecto.potencia_pico_kwp:
+    if sizing_from_items.get('potencia_pico_kwp') or sizing_from_items.get('numero_paneles'):
         ws2 = wb.create_sheet('Resumen Técnico')
         ws2.sheet_properties.tabColor = '10B981'
 
@@ -1325,12 +1705,12 @@ def generar_excel_cotizacion(cotizacion):
 
         tech_data = [
             ('Tipo de sistema', proyecto.get_tipo_sistema_display()),
-            ('Potencia del sistema', f'{proyecto.potencia_pico_kwp:.2f} kWp'),
-            ('Número de paneles', str(proyecto.numero_paneles or '—')),
+            ('Potencia del sistema', f"{sizing_from_items.get('potencia_pico_kwp', 0):.2f} kWp"),
+            ('Número de paneles', str(sizing_from_items.get('numero_paneles') or '—')),
             ('Generación estimada',
-             f'{proyecto.generacion_mensual_kwh:.0f} kWh/mes' if proyecto.generacion_mensual_kwh else '—'),
+             f"{sizing_from_items.get('generacion_mensual_kwh', 0):.0f} kWh/mes" if sizing_from_items.get('generacion_mensual_kwh') else '—'),
             ('Cobertura solar',
-             f'{proyecto.porcentaje_cobertura:.1f}%' if proyecto.porcentaje_cobertura else '—'),
+             f"{sizing_from_items.get('porcentaje_cobertura', 0):.1f}%" if sizing_from_items.get('porcentaje_cobertura') else '—'),
             ('HSP promedio', f'{proyecto.hsp_promedio:.2f} h/día' if proyecto.hsp_promedio else '—'),
             ('Ahorro mensual', _fmt_cop(proyecto.ahorro_mensual) if proyecto.ahorro_mensual else '—'),
             ('ROI estimado', f'{proyecto.roi_anos:.1f} años' if proyecto.roi_anos else '—'),
@@ -1347,6 +1727,73 @@ def generar_excel_cotizacion(cotizacion):
             cell_v.font = normal_font
             cell_v.border = border_thin
             r += 1
+
+    # ══════════════════════════════
+    # SHEET 3: Cargas Eléctricas (Off-grid)
+    # ══════════════════════════════
+    cargas = proyecto.cargas.all()
+    if cargas.exists():
+        ws3 = wb.create_sheet('Cargas Eléctricas')
+        ws3.sheet_properties.tabColor = 'DC2626'
+
+        col_widths_cargas = [30, 8, 14, 12, 16, 14]
+        for i, w in enumerate(col_widths_cargas, 1):
+            ws3.column_dimensions[get_column_letter(i)].width = w
+
+        row = 1
+        ws3.merge_cells(start_row=row, start_column=1, end_row=row, end_column=6)
+        ws3.cell(row=row, column=1, value='Cargas Eléctricas del Sistema').font = title_font
+        row += 2
+
+        # Headers
+        headers = ['Dispositivo', 'Cant.', 'Potencia (W)', 'Horas/día', 'Energía (Wh/día)', 'Prioridad']
+        for col_idx, header in enumerate(headers, 1):
+            cell = ws3.cell(row=row, column=col_idx, value=header)
+            cell.font = header_font
+            cell.fill = header_fill
+            cell.alignment = Alignment(horizontal='center', wrap_text=True)
+            cell.border = border_thin
+        row += 1
+
+        # Data
+        for i, carga in enumerate(cargas, 1):
+            ws3.cell(row=row, column=1, value=carga.dispositivo).font = normal_font
+            ws3.cell(row=row, column=1).border = border_thin
+
+            ws3.cell(row=row, column=2, value=carga.cantidad).font = normal_font
+            ws3.cell(row=row, column=2).alignment = Alignment(horizontal='center')
+            ws3.cell(row=row, column=2).border = border_thin
+
+            cell_potencia = ws3.cell(row=row, column=3, value=int(carga.potencia_nominal_w))
+            cell_potencia.font = normal_font
+            cell_potencia.alignment = Alignment(horizontal='center')
+            cell_potencia.number_format = '#,##0'
+            cell_potencia.border = border_thin
+
+            cell_horas = ws3.cell(row=row, column=4, value=carga.horas_uso_dia)
+            cell_horas.font = normal_font
+            cell_horas.alignment = Alignment(horizontal='center')
+            cell_horas.border = border_thin
+
+            cell_energia = ws3.cell(row=row, column=5, value=int(carga.energia_diaria_wh))
+            cell_energia.font = bold_font
+            cell_energia.alignment = Alignment(horizontal='center')
+            cell_energia.number_format = '#,##0'
+            cell_energia.border = border_thin
+
+            cell_prioridad = ws3.cell(row=row, column=6, value=carga.get_prioridad_display())
+            cell_prioridad.font = normal_font
+            cell_prioridad.alignment = Alignment(horizontal='center')
+            cell_prioridad.border = border_thin
+
+            # Alternate row colors
+            if i % 2 == 0:
+                for col_idx in range(1, 7):
+                    ws3.cell(row=row, column=col_idx).fill = PatternFill(
+                        start_color='FFFBEB', end_color='FFFBEB', fill_type='solid'
+                    )
+
+            row += 1
 
     # ─── Write to buffer ───
     buffer = io.BytesIO()

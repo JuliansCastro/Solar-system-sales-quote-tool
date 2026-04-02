@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load humanize %}
 {% block title %}Cargas - {{ proyecto.nombre }} - SolarQuote{% endblock %}
 
 {% block content %}
@@ -18,15 +19,15 @@
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <div class="stat-card text-center">
             <p class="text-sm text-ink-500">Potencia total</p>
-            <p class="text-2xl font-extrabold font-mono text-ink-900">{{ resumen.potencia_total|floatformat:0 }} W</p>
+            <p class="text-2xl font-extrabold font-mono text-ink-900">{{ resumen.potencia_total|floatformat:0|intcomma }} W</p>
         </div>
         <div class="stat-card text-center">
             <p class="text-sm text-ink-500">Energía diaria</p>
-            <p class="text-2xl font-extrabold font-mono text-solar-600">{{ resumen.energia_diaria|floatformat:0 }} Wh/día</p>
+            <p class="text-2xl font-extrabold font-mono text-solar-600">{{ resumen.energia_diaria|floatformat:0|intcomma }} Wh/día</p>
         </div>
         <div class="stat-card text-center">
             <p class="text-sm text-ink-500">Pico de arranque</p>
-            <p class="text-2xl font-extrabold font-mono text-orange-600">{{ resumen.potencia_arranque_max|floatformat:0 }} W</p>
+            <p class="text-2xl font-extrabold font-mono text-orange-600">{{ resumen.potencia_arranque_max|floatformat:0|intcomma }} W</p>
         </div>
     </div>
     {% endif %}
@@ -51,7 +52,7 @@
                                 data-fp="{{ tipo.factor_potencia }}"
                                 data-reactiva="{{ tipo.carga_reactiva|yesno:'1,0' }}"
                                 data-arranque="{{ tipo.factor_arranque }}">
-                            {{ tipo.nombre }} ({{ tipo.potencia_nominal_w|floatformat:0 }}W)
+                            {{ tipo.nombre }} ({{ tipo.potencia_nominal_w|floatformat:0|intcomma }}W)
                         </option>
                         {% endfor %}
                     </select>
@@ -68,7 +69,7 @@
                 </div>
                 <div>
                     <label class="form-label">Horas/día</label>
-                    <input type="number" name="horas_uso_dia" id="horas-uso-input" step="0.5" min="0" max="24"
+                    <input type="number" name="horas_uso_dia" id="horas-uso-input" step="0.01" min="0.1" max="24"
                            placeholder="Predeterminado" class="form-input">
                     <p class="text-xs text-ink-400 mt-0.5">Vacío = valor por defecto</p>
                 </div>
@@ -122,15 +123,15 @@
                     <tr class="hover:bg-canvas-50 transition-base" id="carga-row-{{ carga.pk }}">
                         <td class="table-cell">
                             <span class="font-medium text-ink-900">{{ carga.dispositivo }}</span>
-                            <p class="text-xs text-ink-400 font-mono">{{ carga.potencia_nominal_w|floatformat:0 }}W × {{ carga.cantidad }}</p>
+                            <p class="text-xs text-ink-400 font-mono">{{ carga.potencia_nominal_w|floatformat:0|intcomma }}W × {{ carga.cantidad }}</p>
                         </td>
                         <td class="table-cell text-center">
                             <span class="font-medium">{{ carga.cantidad }}</span>
                         </td>
-                        <td class="table-cell text-center font-mono">{{ carga.potencia_total_w|floatformat:0 }}</td>
+                        <td class="table-cell text-center font-mono">{{ carga.potencia_total_w|floatformat:0|intcomma }}</td>
                         <td class="table-cell text-center font-mono text-ink-500">{{ carga.horas_uso_dia|floatformat:1 }}</td>
                         <td class="table-cell text-center">
-                            <span class="font-semibold font-mono text-solar-700">{{ carga.energia_diaria_wh|floatformat:0 }}</span>
+                            <span class="font-semibold font-mono text-solar-700">{{ carga.energia_diaria_wh|floatformat:0|intcomma }}</span>
                         </td>
                         <td class="table-cell text-center">
                             <span class="badge
@@ -182,7 +183,7 @@
                                 <div>
                                     <label class="form-label">Horas/día</label>
                                     <input type="number" name="horas_uso_dia" value="{{ carga.horas_uso_dia }}"
-                                           step="0.5" min="0" max="24" class="form-input w-24">
+                                           step="0.01" min="0.1" max="24" class="form-input w-24">
                                 </div>
                                 <div>
                                     <label class="form-label">Prioridad</label>
@@ -216,9 +217,9 @@
                     <tr class="font-semibold">
                         <td class="px-4 py-3 text-sm text-ink-700">TOTALES</td>
                         <td class="px-4 py-3 text-center text-sm text-ink-700">{{ cargas|length }}</td>
-                        <td class="px-4 py-3 text-center text-sm font-mono text-ink-900">{{ resumen.potencia_total|floatformat:0 }}</td>
+                        <td class="px-4 py-3 text-center text-sm font-mono text-ink-900">{{ resumen.potencia_total|floatformat:0|intcomma }}</td>
                         <td class="px-4 py-3 text-center text-sm text-ink-400">—</td>
-                        <td class="px-4 py-3 text-center text-sm text-solar-700 font-extrabold font-mono">{{ resumen.energia_diaria|floatformat:0 }}</td>
+                        <td class="px-4 py-3 text-center text-sm text-solar-700 font-extrabold font-mono">{{ resumen.energia_diaria|floatformat:0|intcomma }}</td>
                         <td colspan="3" class="px-4 py-3"></td>
                     </tr>
                 </tfoot>

@@ -1,7 +1,5 @@
-"""
-Core Django tests.
-Backup and restore testing is now handled by APScheduler integration.
-"""
+"""Model-level tests."""
+
 from django.test import TestCase
 
 from core.models import Cliente
@@ -12,5 +10,5 @@ class ClienteModelTestCase(TestCase):
 
     def test_cliente_model_exists(self):
         """Test that Cliente model is available."""
-        self.assertTrue(hasattr(Cliente, 'objects'))
-        self.assertTrue(callable(Cliente.objects.all))  # Queryset method exists
+        self.assertTrue(hasattr(Cliente, "objects"))
+        self.assertTrue(callable(Cliente.objects.all))

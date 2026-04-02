@@ -1,6 +1,8 @@
 # ☀️ Solar Quote Tool
 By Ing. Julian A. Castro - 2026
 
+![Coverage Gate](https://img.shields.io/badge/coverage-gate%20%3E%3D%2070%25-brightgreen)
+
 Herramienta web integral para el diseño, dimensionamiento y cotización de sistemas de energía solar fotovoltaica, desarrollada con Django. Sistema modular con selección de equipos en tiempo real, validación de compatibilidad y generación automática de reportes profesionales.
 
 ## 📋 Tabla de Contenidos
@@ -884,11 +886,37 @@ C:/ProgramData/radioconda/python.exe manage.py spectacular --file schema.yml
 
 Objetivo de cobertura recomendado para CI: **70%** mínimo en API y servicios críticos.
 
+## Scripts operativos (post-refactor)
+
+Los scripts de carga manual fueron fusionados en comandos de Django y servicios reutilizables:
+
+```bash
+cd solar_app
+C:/ProgramData/radioconda/python.exe manage.py load_equipment_catalog
+C:/ProgramData/radioconda/python.exe manage.py setup_demo_data
+```
+
+Esto reemplaza los scripts sueltos movidos a `deprecated/`.
+
 ## Benchmark básico
 
 ```bash
 C:/ProgramData/radioconda/python.exe scripts/benchmark_api.py --url http://localhost:8000/api/v1/equipment/ --iterations 100
 ```
+
+## Deprecated scripts
+
+- Carpeta: `deprecated/`
+- Fecha de deprecación: 2026-03-15
+- Fecha objetivo de eliminación final: 2026-06-30
+
+Scripts movidos:
+
+- `deprecated/scripts/run_load_equipment.py`
+- `deprecated/scripts/setup_test_data.py`
+- `deprecated/scripts/0012_load_departamentos_municipios.py`
+- `deprecated/solar_app/load_equipment.py`
+- `deprecated/solar_app/add_equipment_list.py`
 
 ### Endpoints Principales
 
@@ -906,6 +934,49 @@ C:/ProgramData/radioconda/python.exe scripts/benchmark_api.py --url http://local
 | `/api/proyectos/<id>/equipment/<id>/remove/`| POST   | Remover equipo de proyecto         |
 | `/api/proyectos/<id>/recalculate/`          | POST   | Recalcular dimensionamiento        |
 | `/api/proyectos/<id>/check-compatibility/`  | POST   | Validar compatibilidad de equipos  |
+
+
+
+---
+
+Tabla de consumos por uso:
+
+# Tabla 22. Ficha base de consumos por uso y energético
+
+| Equipo                                 | Potencia (W) | Servicio (h/día o ciclos) |
+|----------------------------------------|--------------|---------------------------|
+| Iluminación Incandescente              | 60           | 4 h/día                   |
+| Iluminación LFC                        | 25           | 4 h/día                   |
+| Iluminación LED                        | 12           | 4 h/día                   |
+| Iluminación Tubo fluorescente lineal   | 36           | 4 h/día                   |
+| Iluminación Incandescente halógena     | 60           | 4 h/día                   |
+| Ventilador                             | 100          | 8,5 h/día                 |
+| Aire acondicionado 12000BTU            | 3250         | 5,5 h/día                 |
+| TV 50"                                 | 145          | 7 h/día                   |
+| Nevera                                 | 250          | 12 h/día                  |
+| Plancha                                | 1200         | 1 h/día                   |
+| Lavadora                               | 400          | 0,27 ciclos/día           |
+| Ducha eléctrica                        | 3800         | 0,38 h/día                |
+| Computador portátil                    | 50           | 3,2 h/día                 |
+| Computador                             | 80           | 4,4 h/día                 |
+| Celular                                | 20           | 1 h/día                   |
+| Equipo de sonido                       | 30           | 3,1 h/día                 |
+| Horno microondas                       | 1200         | 0,4 h/día                 |
+| Horno Tostador                         | 1750         | 0,4 h/día                 |
+| Air Fryer                              | 1500         | 0,33 h/día                |
+| Estufa                                 | 1500         | 2,5 h/día                 |
+| Reproductor de música                  | 15           | 3 h/día                   |
+| Reproductor de video                   | 15           | 4 h/día                   |
+| Cámara de seguridad                    | 12           | 24 h/día                  |
+| Hidrolavadora                          | 1400         | 0,4 h/día                 |
+| Congelador                             | 280          | 12 h/día                  |
+| Máquina de soldadura 200A              | 820          | 0,5 h/día                 |
+| Bomba 1 HP                             | 750          | 1,5 h/día                 |
+| Bomba 1/2 HP                           | 375          | 1,5 h/día                 |
+| Bomba 1/3 HP                           | 250          | 1,5 h/día                 |
+| Bomba 1/4 HP                           | 188          | 1,5 h/día                 |
+| Otros electrodomésticos                | -            | -                         |
+
 
 ---
 

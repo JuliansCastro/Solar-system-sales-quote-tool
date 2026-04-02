@@ -24,6 +24,13 @@ class EquipmentSelectSerializer(serializers.Serializer):
     notas = serializers.CharField(required=False, allow_blank=True, default="")
 
 
+class EquipmentSelectionUpdateSerializer(serializers.Serializer):
+    """Partial update payload for a selected equipment resource."""
+
+    cantidad = serializers.IntegerField(required=False, min_value=1)
+    notas = serializers.CharField(required=False, allow_blank=True, max_length=1000)
+
+
 class EquipmentQuantityUpdateSerializer(serializers.Serializer):
     qty_change = serializers.IntegerField()
 

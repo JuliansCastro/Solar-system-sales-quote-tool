@@ -17,6 +17,9 @@
         <a href="{% url 'cotizacion_pdf' cotizacion.pk %}" class="btn-secondary text-xs">
             <i class="fas fa-file-pdf text-red-500 text-xs"></i> PDF
         </a>
+        <a href="{% url 'cotizacion_pdf_weasy' cotizacion.pk %}" class="btn-secondary text-xs">
+            <i class="fas fa-file-pdf text-orange-500 text-xs"></i> PDF (Weasy)
+        </a>
         <a href="{% url 'cotizacion_excel' cotizacion.pk %}" class="btn-secondary text-xs">
             <i class="fas fa-file-excel text-green-600 text-xs"></i> Excel
         </a>
@@ -120,38 +123,46 @@
         </div>
 
         {# Dimensionamiento - Resultados #}
-        {% if proyecto.potencia_pico_kwp %}
+        {# Los datos mostrados aquí son calculados dinámicamente basándose en los items de la cotización #}
+        {# Misma fuente de cálculo: _calculate_sizing_from_items() en chart_data.py #}
+        {% if sizing.potencia_pico_kwp or sizing.numero_paneles %}
         <div class="card p-6">
             <h2 class="font-semibold text-ink-800 mb-4"><i class="fas fa-calculator mr-2 text-solar-500"></i> Resultados del Dimensionamiento</h2>
             <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                {% if sizing.potencia_pico_kwp %}
                 <div class="stat-card text-center bg-solar-50">
                     <i class="fas fa-solar-panel text-solar-500 text-xl mb-1"></i>
-                    <p class="text-2xl font-extrabold font-mono text-solar-700">{{ proyecto.potencia_pico_kwp }}</p>
+                    <p class="text-2xl font-extrabold font-mono text-solar-700">{{ sizing.potencia_pico_kwp }}</p>
                     <p class="text-xs text-ink-500">kWp Potencia pico</p>
                 </div>
+                {% endif %}
+                {% if sizing.numero_paneles %}
                 <div class="stat-card text-center">
                     <i class="fas fa-th text-blue-500 text-xl mb-1"></i>
-                    <p class="text-2xl font-extrabold font-mono text-ink-900">{{ proyecto.numero_paneles }}</p>
+                    <p class="text-2xl font-extrabold font-mono text-ink-900">{{ sizing.numero_paneles }}</p>
                     <p class="text-xs text-ink-500">Paneles</p>
                 </div>
+                {% endif %}
+                {% if sizing.generacion_mensual_kwh %}
                 <div class="stat-card text-center">
                     <i class="fas fa-bolt text-green-500 text-xl mb-1"></i>
-                    <p class="text-2xl font-extrabold font-mono text-green-600">{{ proyecto.generacion_mensual_kwh|floatformat:0 }}</p>
+                    <p class="text-2xl font-extrabold font-mono text-green-600">{{ sizing.generacion_mensual_kwh|floatformat:0|intcomma }}</p>
                     <p class="text-xs text-ink-500">kWh/mes generados</p>
                 </div>
-                {% if proyecto.porcentaje_cobertura %}
+                {% endif %}
+                {% if sizing.porcentaje_cobertura %}
                 <div class="stat-card text-center">
                     <i class="fas fa-chart-pie text-purple-500 text-xl mb-1"></i>
-                    <p class="text-2xl font-extrabold font-mono text-purple-600">{{ proyecto.porcentaje_cobertura|floatformat:0 }}%</p>
+                    <p class="text-2xl font-extrabold font-mono text-purple-600">{{ sizing.porcentaje_cobertura|floatformat:0 }}%</p>
                     <p class="text-xs text-ink-500">Cobertura solar</p>
                 </div>
                 {% endif %}
             </div>
-            {% if proyecto.capacidad_baterias_kwh %}
+            {% if sizing.capacidad_baterias_kwh %}
             <div class="p-3 bg-orange-50 rounded-soft border border-orange-200">
                 <p class="text-sm text-orange-800">
                     <i class="fas fa-battery-full mr-1"></i>
-                    <strong>Banco de baterías:</strong> {{ proyecto.capacidad_baterias_kwh }} kWh · Autonomía: {{ proyecto.autonomia_dias }} días
+                    <strong>Banco de baterías:</strong> {{ sizing.capacidad_baterias_kwh }} kWh · Autonomía: {{ sizing.autonomia_dias }} días
                 </p>
             </div>
             {% endif %}
@@ -159,7 +170,7 @@
         {% endif %}
 
         {# Gráficos de dimensionamiento #}
-        {% if proyecto.potencia_pico_kwp %}
+        {% if sizing.potencia_pico_kwp %}
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div class="card p-6">
                 <h3 class="font-semibold text-ink-800 mb-4">Consumo vs Generación Solar</h3>
@@ -173,6 +184,48 @@
             {% endif %}
         </div>
 
+        {% if panel_area %}
+        <div class="card p-6">
+            <h3 class="font-semibold text-ink-800 mb-4"><i class="fas fa-ruler-combined mr-2 text-solar-500"></i> Área requerida para instalación</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+                <div class="flex justify-center">
+                    <svg viewBox="0 0 300 180" class="w-full max-w-xs" aria-label="Dibujo panel solar">
+                        <rect x="30" y="20" width="180" height="120" rx="6" fill="#0f172a" stroke="#1e293b" stroke-width="3"></rect>
+                        <g stroke="#334155" stroke-width="1">
+                            <line x1="60" y1="20" x2="60" y2="140"></line>
+                            <line x1="90" y1="20" x2="90" y2="140"></line>
+                            <line x1="120" y1="20" x2="120" y2="140"></line>
+                            <line x1="150" y1="20" x2="150" y2="140"></line>
+                            <line x1="180" y1="20" x2="180" y2="140"></line>
+                            <line x1="30" y1="44" x2="210" y2="44"></line>
+                            <line x1="30" y1="68" x2="210" y2="68"></line>
+                            <line x1="30" y1="92" x2="210" y2="92"></line>
+                            <line x1="30" y1="116" x2="210" y2="116"></line>
+                        </g>
+                        <line x1="30" y1="156" x2="210" y2="156" stroke="#0f766e" stroke-width="2"></line>
+                        <polygon points="30,156 38,152 38,160" fill="#0f766e"></polygon>
+                        <polygon points="210,156 202,152 202,160" fill="#0f766e"></polygon>
+                        <text x="120" y="172" text-anchor="middle" font-size="11" fill="#0f766e">Largo: {{ panel_area.largo_mm|floatformat:0 }} mm</text>
+                        <line x1="232" y1="20" x2="232" y2="140" stroke="#f59e0b" stroke-width="2"></line>
+                        <polygon points="232,20 228,28 236,28" fill="#f59e0b"></polygon>
+                        <polygon points="232,140 228,132 236,132" fill="#f59e0b"></polygon>
+                        <text x="245" y="86" transform="rotate(90 245 86)" text-anchor="middle" font-size="11" fill="#f59e0b">Ancho: {{ panel_area.ancho_mm|floatformat:0 }} mm</text>
+                    </svg>
+                </div>
+                <div class="space-y-2 text-sm text-ink-700">
+                    <p><span class="font-semibold">Panel de referencia:</span> {{ panel_area.panel_nombre }}</p>
+                    <p><span class="font-semibold">Área de un panel:</span> {{ panel_area.area_panel_m2|floatformat:3 }} m²</p>
+                    <p><span class="font-semibold">Número de paneles:</span> {{ panel_area.numero_paneles }}</p>
+                    <p><span class="font-semibold">Margen adicional:</span> {{ panel_area.factor_extra }}%</p>
+                    <p class="text-base font-extrabold text-solar-700 pt-2 border-t border-canvas-200">
+                        Área total estimada: {{ panel_area.area_total_m2|floatformat:2 }} m²
+                    </p>
+                    <p class="text-xs text-ink-400">Fórmula: (largo × ancho / 1.000.000) × número de paneles × 1,10</p>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div class="card p-6">
                 <h3 class="font-semibold text-ink-800 mb-4">Radiación solar mensual (PVGIS)</h3>
@@ -181,6 +234,48 @@
             <div class="card p-6">
                 <h3 class="font-semibold text-ink-800 mb-4">HSP mensual (Horas Solar Pico)</h3>
                 <div id="chartHSP" style="height:300px;"></div>
+            </div>
+        </div>
+        {% endif %}
+
+        {# Cargas eléctricas (Off-grid) #}
+        {% if cargas %}
+        <div class="card">
+            <div class="px-6 py-4 border-b border-canvas-200 flex items-center justify-between">
+                <h2 class="font-semibold text-ink-800"><i class="fas fa-bolt mr-2 text-solar-500"></i> Cargas Eléctricas</h2>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="min-w-full text-sm" role="table">
+                    <thead class="surface-inset border-b border-canvas-200/60">
+                        <tr>
+                            <th class="table-header">Dispositivo</th>
+                            <th class="table-header text-center">Cant.</th>
+                            <th class="table-header text-center">Potencia (W)</th>
+                            <th class="table-header text-center">Horas/día</th>
+                            <th class="table-header text-center">Energía (Wh/día)</th>
+                            <th class="table-header text-center">Prioridad</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-canvas-100">
+                        {% for carga in cargas %}
+                        <tr class="hover:bg-canvas-50 transition-base">
+                            <td class="table-cell font-medium text-ink-900">{{ carga.dispositivo }}</td>
+                            <td class="table-cell text-center">{{ carga.cantidad }}</td>
+                            <td class="table-cell text-center font-mono">{{ carga.potencia_nominal_w }}</td>
+                            <td class="table-cell text-center font-mono">{{ carga.horas_uso_dia }}</td>
+                            <td class="table-cell text-center font-mono font-semibold">{{ carga.energia_diaria_wh|floatformat:0 }}</td>
+                            <td class="table-cell text-center">
+                                <span class="badge
+                                    {% if carga.prioridad == 'esencial' %}badge-red
+                                    {% elif carga.prioridad == 'importante' %}badge-amber
+                                    {% else %}badge-gray{% endif %}">
+                                    {{ carga.get_prioridad_display }}
+                                </span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
             </div>
         </div>
         {% endif %}
@@ -244,7 +339,7 @@
                 {% if cotizacion.proyecto.generacion_mensual_kwh %}
                 <div class="flex justify-between">
                     <dt class="text-ink-500">Generación est.</dt>
-                    <dd class="font-mono">{{ cotizacion.proyecto.generacion_mensual_kwh|floatformat:0 }} kWh/mes</dd>
+                    <dd class="font-mono">{{ cotizacion.proyecto.generacion_mensual_kwh|floatformat:0|intcomma }} kWh/mes</dd>
                 </div>
                 {% endif %}
             </dl>
@@ -270,6 +365,12 @@ document.addEventListener('DOMContentLoaded', function () {
     const plotConfig = {responsive: true, displayModeBar: false};
     const plotFont = {family: 'Inter, sans-serif', size: 12};
     const transparent = 'transparent';
+
+    // COHERENCIA DE DATOS: Todos los datos de dimensionamiento provienen de _calculate_sizing_from_items()
+    // en core/calculations/chart_data.py, asegurando que:
+    // - Los valores mostrados en "Resultados del Dimensionamiento" (HTML) provengan del contexto
+    // - Los gráficos y comparaciones usen exactamente los mismos valores desde el JSON
+    // - La generación mensual, cobertura y otras métricas sean consistentes en toda la página
 
     fetch("{% url 'cotizacion_charts_data' cotizacion.pk %}")
         .then(r => {

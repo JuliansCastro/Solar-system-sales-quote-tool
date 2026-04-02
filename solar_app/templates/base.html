@@ -250,6 +250,11 @@
                     <a href="{% url 'company_settings' %}" class="sidebar-link {% if request.resolver_match.url_name == 'company_settings' %}active{% endif %}">
                         <span class="sidebar-icon"><i class="fas fa-sliders-h"></i></span> Configuración
                     </a>
+                    {% if user.is_superuser %}
+                    <a href="{% url 'backup_restore' %}" class="sidebar-link {% if request.resolver_match.url_name == 'backup_restore' %}active{% endif %}">
+                        <span class="sidebar-icon"><i class="fas fa-database"></i></span> Restaurar Backup
+                    </a>
+                    {% endif %}
                     <a href="{% url 'admin:index' %}" class="sidebar-link" target="_blank" rel="noopener">
                         <span class="sidebar-icon"><i class="fas fa-cog"></i></span> Admin Django
                     </a>

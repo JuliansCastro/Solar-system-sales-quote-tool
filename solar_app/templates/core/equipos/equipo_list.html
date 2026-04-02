@@ -15,7 +15,7 @@
 
 <!-- Filters -->
 <div class="card mb-6 p-4">
-    <form method="get" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3 items-end">
+    <form id="filterForm" method="get" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3 items-end">
         <div>
             <label class="form-label text-xs">Buscar</label>
             {{ filter_form.buscar }}
@@ -44,12 +44,55 @@
             <label class="flex items-center gap-2 text-sm text-ink-600 pb-2.5 cursor-pointer">
                 {{ filter_form.en_stock }} En stock
             </label>
-            <button type="submit" class="btn-primary whitespace-nowrap">
-                <i class="fas fa-filter text-xs"></i> Filtrar
-            </button>
+            <a href="?" class="btn-primary whitespace-nowrap">
+                <i class="fas fa-times text-xs"></i> Limpiar filtros
+            </a>
         </div>
     </form>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const filterForm = document.getElementById('filterForm');
+    if (!filterForm) return;
+    
+    // Para el campo de búsqueda, usamos debounce para no hacer requests cada carácter
+    const searchInput = filterForm.querySelector('[name="buscar"]');
+    let searchTimeout;
+    
+    if (searchInput) {
+        searchInput.addEventListener('input', function() {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(function() {
+                filterForm.submit();
+            }, 500); // Espera 500ms después de que el usuario deja de escribir
+        });
+    }
+    
+    // Para los selects y checkboxes, aplica el filtro inmediatamente
+    const selects = filterForm.querySelectorAll('select');
+    const checkbox = filterForm.querySelector('input[type="checkbox"]');
+    const numberInputs = filterForm.querySelectorAll('input[type="number"]');
+    
+    selects.forEach(select => {
+        select.addEventListener('change', function() {
+            filterForm.submit();
+        });
+    });
+    
+    if (checkbox) {
+        checkbox.addEventListener('change', function() {
+            filterForm.submit();
+        });
+    }
+    
+    numberInputs.forEach(input => {
+        input.addEventListener('change', function() {
+            filterForm.submit();
+        });
+    });
+});
+</script>
 
 <!-- Table -->
 <div class="card overflow-hidden">
@@ -98,8 +141,7 @@
                     <td class="table-cell text-center text-xs text-ink-500 hidden lg:table-cell">{{ equipo.get_sistema_compatible_display }}</td>
                     <td class="table-cell text-right">
                         <div class="flex items-center justify-end gap-0.5">
-                            <a href="{% url 'equipo_clonar' equipo.pk %}" class="btn-ghost p-2 text-ink-400 hover:text-solar-600" title="Clonar"
-                               onclick="return confirm('¿Deseas clonar este equipo?')" aria-label="Clonar {{ equipo.nombre }}">
+                            <a href="{% url 'equipo_clonar' equipo.pk %}" class="btn-ghost p-2 text-ink-400 hover:text-solar-600" title="Clonar" aria-label="Clonar {{ equipo.nombre }}">
                                 <i class="fas fa-copy text-sm"></i>
                             </a>
                             <a href="{% url 'equipo_update' equipo.pk %}" class="btn-ghost p-2 text-ink-400 hover:text-solar-600" title="Editar" aria-label="Editar {{ equipo.nombre }}">

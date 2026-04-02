@@ -86,7 +86,7 @@
                 {% if proyecto.consumo_mensual_factura_kwh %}
                 <div>
                     <p class="data-label">Consumo factura (mensual)</p>
-                    <p class="text-sm font-semibold font-mono text-solar-700">{{ proyecto.consumo_mensual_factura_kwh }} kWh</p>
+                    <p class="text-sm font-semibold font-mono text-solar-700">{{ proyecto.consumo_mensual_factura_kwh|intcomma }} kWh</p>
                 </div>
                 <div>
                     <p class="data-label">Consumo diario (factura)</p>
@@ -95,7 +95,7 @@
                 {% endif %}
                 <div>
                     <p class="data-label">Consumo mensual {% if proyecto.consumo_mensual_factura_kwh %}(cliente){% endif %}</p>
-                    <p class="text-sm font-semibold font-mono">{{ proyecto.cliente.consumo_mensual_kwh }} kWh</p>
+                    <p class="text-sm font-semibold font-mono text-solar-700">{{ proyecto.cliente.consumo_mensual_kwh|intcomma }} kWh</p>
                 </div>
                 <div>
                     <p class="data-label">Tarifa</p>
@@ -124,40 +124,48 @@
         </div>
 
         <!-- Sizing Results -->
-        {% if proyecto.potencia_pico_kwp %}
+        {# COHERENCIA DE DATOS: Si el proyecto tiene cotizaciones con equipos, los datos de dimensionamiento #}
+        {# se calculan dinámicamente desde esos equipos seleccionados. Si no hay cotizaciones, muestra los #}
+        {# valores cacheados del proyecto. Mantiene coherencia entre proyecto_detail y cotizacion_detail. #}
+        {% if sizing_from_quote or proyecto.potencia_pico_kwp %}
         <div class="card p-6">
             <h3 class="text-lg font-semibold text-ink-800 mb-4">
                 <i class="fas fa-calculator text-solar-500 mr-1"></i>Resultado del dimensionamiento
             </h3>
+            {% if sizing_from_quote %}
+            <div class="mb-3 p-3 bg-blue-50 rounded-soft border border-blue-200 text-xs text-blue-700">
+                <i class="fas fa-info-circle mr-1"></i> Calculado desde equipos de la cotización más reciente
+            </div>
+            {% endif %}
             <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div class="stat-card text-center bg-solar-50">
-                    <p class="text-2xl font-extrabold font-mono text-solar-600">{{ proyecto.potencia_pico_kwp }}</p>
+                    <p class="text-2xl font-extrabold font-mono text-solar-600">{{ sizing_from_quote.potencia_pico_kwp|default:proyecto.potencia_pico_kwp }}</p>
                     <p class="text-xs text-ink-500">kWp instalados</p>
                 </div>
                 <div class="stat-card text-center">
-                    <p class="text-2xl font-extrabold font-mono text-ink-900">{{ proyecto.numero_paneles }}</p>
+                    <p class="text-2xl font-extrabold font-mono text-ink-900">{{ sizing_from_quote.numero_paneles|default:proyecto.numero_paneles }}</p>
                     <p class="text-xs text-ink-500">Paneles</p>
                 </div>
                 <div class="stat-card text-center">
-                    <p class="text-2xl font-extrabold font-mono text-green-600">{{ proyecto.generacion_mensual_kwh|floatformat:0 }}</p>
+                    <p class="text-2xl font-extrabold font-mono text-green-600">{{ sizing_from_quote.generacion_mensual_kwh|default:proyecto.generacion_mensual_kwh|floatformat:0|intcomma }}</p>
                     <p class="text-xs text-ink-500">kWh/mes generados</p>
                 </div>
-                {% if proyecto.porcentaje_cobertura %}
+                {% if sizing_from_quote.porcentaje_cobertura or proyecto.porcentaje_cobertura %}
                 <div class="stat-card text-center">
-                    <p class="text-2xl font-extrabold font-mono text-blue-600">{{ proyecto.porcentaje_cobertura|floatformat:0 }}%</p>
+                    <p class="text-2xl font-extrabold font-mono text-blue-600">{{ sizing_from_quote.porcentaje_cobertura|default:proyecto.porcentaje_cobertura|floatformat:0 }}%</p>
                     <p class="text-xs text-ink-500">Cobertura solar</p>
                 </div>
                 {% endif %}
             </div>
 
-            {% if proyecto.capacidad_baterias_kwh %}
+            {% if sizing_from_quote.capacidad_baterias_kwh or proyecto.capacidad_baterias_kwh %}
             <div class="mt-4 p-4 bg-orange-50 rounded-soft border border-orange-200">
                 <h4 class="text-sm font-semibold text-orange-800 mb-2">
                     <i class="fas fa-battery-full mr-1"></i> Banco de baterías
                 </h4>
                 <p class="text-sm text-orange-700 font-mono">
-                    Capacidad: {{ proyecto.capacidad_baterias_kwh }} kWh ·
-                    Autonomía: {{ proyecto.autonomia_dias }} días
+                    Capacidad: {{ sizing_from_quote.capacidad_baterias_kwh|default:proyecto.capacidad_baterias_kwh }} kWh ·
+                    Autonomía: {{ sizing_from_quote.autonomia_dias|default:proyecto.autonomia_dias }} días
                 </p>
             </div>
             {% endif %}

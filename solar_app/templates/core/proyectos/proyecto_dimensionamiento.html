@@ -15,19 +15,19 @@
 
 <!-- Tab Navigation -->
 <div class="mb-6 flex gap-2 border-b border-canvas-200">
-    <button class="tab-btn tab-active px-6 py-3 font-medium border-b-2 border-solar-500 text-solar-600" data-tab="dimensionamiento">
-        <i class="fas fa-calculator mr-2"></i>Dimensionamiento
-    </button>
-    <button class="tab-btn px-6 py-3 font-medium border-b-2 border-transparent text-ink-600 hover:text-ink-900" data-tab="equipos">
+    <button class="tab-btn tab-active px-6 py-3 font-medium border-b-2 border-solar-500 text-solar-600" data-tab="equipos">
         <i class="fas fa-th mr-2"></i>Seleccionar equipos
     </button>
-    <button class="tab-btn px-6 py-3 font-medium border-b-2 border-transparent text-ink-600 hover:text-ink-900" data-tab="comparacion">
-        <i class="fas fa-chart-bar mr-2"></i>Análisis comparativo
+    <button class="tab-btn px-6 py-3 font-medium border-b-2 border-transparent text-ink-600 hover:text-ink-900" data-tab="dimensionamiento">
+        <i class="fas fa-calculator mr-2"></i>Dimensionamiento
     </button>
 </div>
 
+<!-- Notification Toast Container -->
+<div id="notification-container" class="fixed top-6 right-6 z-50"></div>
+
 <!-- TAB 1: DIMENSIONAMIENTO (Original) -->
-<div id="tab-dimensionamiento" class="tab-content">
+<div id="tab-dimensionamiento" class="tab-content hidden">
 
 <!-- Equipment-based Alerts -->
 <div id="equipment-alerts-container"></div>
@@ -78,7 +78,7 @@
             {% if proyecto.consumo_mensual_factura_kwh %}
             <div class="flex justify-between border-b border-canvas-100 pb-2">
                 <dt class="text-sm text-ink-500">Consumo mensual factura</dt>
-                <dd class="text-sm font-medium font-mono text-solar-700">{{ proyecto.consumo_mensual_factura_kwh }} kWh</dd>
+                <dd class="text-sm font-medium font-mono text-solar-700">{{ proyecto.consumo_mensual_factura_kwh|intcomma }} kWh</dd>
             </div>
             <div class="flex justify-between border-b border-canvas-100 pb-2">
                 <dt class="text-sm text-ink-500">Consumo diario (factura)</dt>
@@ -87,11 +87,11 @@
             {% endif %}
             <div class="flex justify-between border-b border-canvas-100 pb-2">
                 <dt class="text-sm text-ink-500">Consumo mensual {% if proyecto.consumo_mensual_factura_kwh %}(cliente){% else %}usado{% endif %}</dt>
-                <dd class="text-sm font-medium font-mono">{{ proyecto.consumo_mensual_efectivo_kwh }} kWh</dd>
+                <dd class="text-sm font-medium font-mono">{{ proyecto.consumo_mensual_efectivo_kwh|intcomma }} kWh</dd>
             </div>
             <div class="flex justify-between border-b border-canvas-100 pb-2">
                 <dt class="text-sm text-ink-500">Generación mensual</dt>
-                <dd class="text-sm font-medium font-mono text-green-600" id="detail-generacion-mensual">{{ resultado.generacion_mensual_kwh|floatformat:0 }} kWh</dd>
+                <dd class="text-sm font-medium font-mono text-green-600" id="detail-generacion-mensual">{{ resultado.generacion_mensual_kwh|floatformat:0|intcomma }} kWh</dd>
             </div>
             {% if resultado.area_requerida_m2 %}
             <div class="flex justify-between border-b border-canvas-100 pb-2">
@@ -189,50 +189,313 @@
 </div>
 {% endif %}
 
-<!-- Equipment Suggestions -->
-{% if sugerencias %}
-<div class="card mb-6">
-    <div class="px-6 py-4 border-b border-canvas-200">
-        <h3 class="text-lg font-semibold text-ink-800">
-            <i class="fas fa-lightbulb text-solar-500 mr-2"></i>Equipos sugeridos del inventario
-        </h3>
-    </div>
-    <div class="overflow-x-auto">
-        <table class="min-w-full text-sm" role="table">
-            <thead class="surface-inset border-b border-canvas-200/60">
-                <tr>
-                    <th class="table-header">Componente</th>
-                    <th class="table-header">Equipo sugerido</th>
-                    <th class="table-header text-center">Cantidad</th>
-                    <th class="table-header text-right">Precio unit.</th>
-                    <th class="table-header text-right">Subtotal</th>
-                </tr>
-            </thead>
-            <tbody class="divide-y divide-canvas-100">
-                {% for key, sug in sugerencias.items %}
-                <tr class="hover:bg-canvas-50 transition-base">
-                    <td class="table-cell font-medium capitalize">{{ key }}</td>
-                    <td class="table-cell">
-                        <a href="{% url 'equipo_detail' sug.equipo.pk %}" class="text-solar-600 hover:text-solar-700 transition-base">
-                            {{ sug.equipo.fabricante }} {{ sug.equipo.modelo }}
-                        </a>
-                        <span class="text-xs text-ink-400 ml-1 font-mono">{{ sug.equipo.potencia_nominal_w }}W</span>
-                    </td>
-                    <td class="table-cell text-center font-mono">{{ sug.cantidad }}</td>
-                    <td class="table-cell text-right font-mono">${{ sug.equipo.precio_venta|floatformat:0|intcomma }}</td>
-                    <td class="table-cell text-right font-mono font-semibold">${{ sug.equipo.precio_venta|floatformat:0|intcomma }}</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
-</div>
-{% endif %}
-
 </div>
 
 <!-- TAB 2: SELECCIONAR EQUIPOS -->
-<div id="tab-equipos" class="tab-content hidden">
+<div id="tab-equipos" class="tab-content">
+    <!-- Equipment Suggestions Header -->
+    <div class="card mb-6">
+        <div class="px-6 py-4 border-b border-canvas-200">
+            <h3 class="text-lg font-semibold text-ink-800">
+                <i class="fas fa-lightbulb text-solar-500 mr-2"></i>Equipos sugeridos del inventario
+            </h3>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="min-w-full text-sm" role="table">
+                <thead class="surface-inset border-b border-canvas-200/60">
+                    <tr>
+                        <th class="table-header">Componente</th>
+                        <th class="table-header">Equipo sugerido</th>
+                        <th class="table-header text-center">Cantidad</th>
+                        <th class="table-header text-right">Precio unit.</th>
+                        <th class="table-header text-right">Subtotal</th>
+                        <th class="table-header text-center">Acción</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-canvas-100">
+                    <!-- Paneles -->
+                    {% if sugerencias.paneles %}
+                        {% with sug=sugerencias.paneles %}
+                        <tr class="hover:bg-canvas-50 transition-base">
+                            <td class="table-cell font-medium capitalize">Paneles</td>
+                            <td class="table-cell">
+                                <a href="{% url 'equipo_detail' sug.equipo.pk %}" class="text-solar-600 hover:text-solar-700 transition-base">
+                                    {{ sug.equipo.fabricante }} {{ sug.equipo.modelo }}
+                                </a>
+                                <span class="text-xs text-ink-400 ml-1 font-mono">{{ sug.equipo.potencia_nominal_w }}W</span>
+                            </td>
+                            <td class="table-cell text-center font-mono">{{ sug.cantidad }}</td>
+                            <td class="table-cell text-right font-mono">${{ sug.equipo.precio_venta|floatformat:0|intcomma }}</td>
+                            <td class="table-cell text-right font-mono font-semibold">
+                                <span data-subtotal data-price="{{ sug.equipo.precio_venta }}" data-qty="{{ sug.cantidad }}">-</span>
+                            </td>
+                            <td class="table-cell text-center">
+                                <button type="button" class="select-suggested-btn btn-secondary text-xs px-3 py-1" data-equipo-id="{{ sug.equipo.pk }}" data-cantidad="{{ sug.cantidad }}" data-key="paneles">
+                                    {% if sug.equipo.pk in selected_equipo_ids %}Actualizar{% else %}Usar este{% endif %}
+                                </button>
+                            </td>
+                        </tr>
+                        {% endwith %}
+                    {% else %}
+                        <tr class="bg-canvas-50 text-ink-400">
+                            <td class="table-cell font-medium">Paneles</td>
+                            <td class="table-cell italic text-xs">Sin sugerencias</td>
+                            <td class="table-cell"></td><td class="table-cell"></td><td class="table-cell"></td><td class="table-cell"></td>
+                        </tr>
+                    {% endif %}
+
+                    <!-- Inversores -->
+                    {% if sugerencias.inversores %}
+                        {% with sug=sugerencias.inversores %}
+                        <tr class="hover:bg-canvas-50 transition-base">
+                            <td class="table-cell font-medium capitalize">Inversores</td>
+                            <td class="table-cell">
+                                <a href="{% url 'equipo_detail' sug.equipo.pk %}" class="text-solar-600 hover:text-solar-700 transition-base">
+                                    {{ sug.equipo.fabricante }} {{ sug.equipo.modelo }}
+                                </a>
+                                <span class="text-xs text-ink-400 ml-1 font-mono">{{ sug.equipo.potencia_nominal_w }}W</span>
+                            </td>
+                            <td class="table-cell text-center font-mono">{{ sug.cantidad }}</td>
+                            <td class="table-cell text-right font-mono">${{ sug.equipo.precio_venta|floatformat:0|intcomma }}</td>
+                            <td class="table-cell text-right font-mono font-semibold">
+                                <span data-subtotal data-price="{{ sug.equipo.precio_venta }}" data-qty="{{ sug.cantidad }}">-</span>
+                            </td>
+                            <td class="table-cell text-center">
+                                <button type="button" class="select-suggested-btn btn-secondary text-xs px-3 py-1" data-equipo-id="{{ sug.equipo.pk }}" data-cantidad="{{ sug.cantidad }}" data-key="inversores">
+                                    {% if sug.equipo.pk in selected_equipo_ids %}Actualizar{% else %}Usar este{% endif %}
+                                </button>
+                            </td>
+                        </tr>
+                        {% endwith %}
+                    {% else %}
+                        <tr class="bg-canvas-50 text-ink-400">
+                            <td class="table-cell font-medium">Inversores</td>
+                            <td class="table-cell italic text-xs">Sin sugerencias</td>
+                            <td class="table-cell"></td><td class="table-cell"></td><td class="table-cell"></td><td class="table-cell"></td>
+                        </tr>
+                    {% endif %}
+
+                    <!-- Baterías -->
+                    {% if sugerencias.baterias %}
+                        {% with sug=sugerencias.baterias %}
+                        <tr class="hover:bg-canvas-50 transition-base">
+                            <td class="table-cell font-medium capitalize">Baterías</td>
+                            <td class="table-cell">
+                                <a href="{% url 'equipo_detail' sug.equipo.pk %}" class="text-solar-600 hover:text-solar-700 transition-base">
+                                    {{ sug.equipo.fabricante }} {{ sug.equipo.modelo }}
+                                </a>
+                                <span class="text-xs text-ink-400 ml-1 font-mono">{{ sug.equipo.potencia_nominal_w }}W</span>
+                            </td>
+                            <td class="table-cell text-center font-mono">{{ sug.cantidad }}</td>
+                            <td class="table-cell text-right font-mono">${{ sug.equipo.precio_venta|floatformat:0|intcomma }}</td>
+                            <td class="table-cell text-right font-mono font-semibold">
+                                <span data-subtotal data-price="{{ sug.equipo.precio_venta }}" data-qty="{{ sug.cantidad }}">-</span>
+                            </td>
+                            <td class="table-cell text-center">
+                                <button type="button" class="select-suggested-btn btn-secondary text-xs px-3 py-1" data-equipo-id="{{ sug.equipo.pk }}" data-cantidad="{{ sug.cantidad }}" data-key="baterias">
+                                    {% if sug.equipo.pk in selected_equipo_ids %}Actualizar{% else %}Usar este{% endif %}
+                                </button>
+                            </td>
+                        </tr>
+                        {% endwith %}
+                    {% else %}
+                        <tr class="bg-canvas-50 text-ink-400">
+                            <td class="table-cell font-medium">Baterías</td>
+                            <td class="table-cell italic text-xs">Sin sugerencias</td>
+                            <td class="table-cell"></td><td class="table-cell"></td><td class="table-cell"></td><td class="table-cell"></td>
+                        </tr>
+                    {% endif %}
+
+                    <!-- Reguladores de carga -->
+                    {% if sugerencias.reguladores %}
+                        {% with sug=sugerencias.reguladores %}
+                        <tr class="hover:bg-canvas-50 transition-base">
+                            <td class="table-cell font-medium capitalize">Reguladores de carga</td>
+                            <td class="table-cell">
+                                <a href="{% url 'equipo_detail' sug.equipo.pk %}" class="text-solar-600 hover:text-solar-700 transition-base">
+                                    {{ sug.equipo.fabricante }} {{ sug.equipo.modelo }}
+                                </a>
+                                <span class="text-xs text-ink-400 ml-1 font-mono">{{ sug.equipo.potencia_nominal_w }}W</span>
+                            </td>
+                            <td class="table-cell text-center font-mono">{{ sug.cantidad }}</td>
+                            <td class="table-cell text-right font-mono">${{ sug.equipo.precio_venta|floatformat:0|intcomma }}</td>
+                            <td class="table-cell text-right font-mono font-semibold">
+                                <span data-subtotal data-price="{{ sug.equipo.precio_venta }}" data-qty="{{ sug.cantidad }}">-</span>
+                            </td>
+                            <td class="table-cell text-center">
+                                <button type="button" class="select-suggested-btn btn-secondary text-xs px-3 py-1" data-equipo-id="{{ sug.equipo.pk }}" data-cantidad="{{ sug.cantidad }}" data-key="reguladores">
+                                    {% if sug.equipo.pk in selected_equipo_ids %}Actualizar{% else %}Usar este{% endif %}
+                                </button>
+                            </td>
+                        </tr>
+                        {% endwith %}
+                    {% else %}
+                        <tr class="bg-canvas-50 text-ink-400">
+                            <td class="table-cell font-medium">Reguladores de carga</td>
+                            <td class="table-cell italic text-xs">Sin sugerencias</td>
+                            <td class="table-cell"></td><td class="table-cell"></td><td class="table-cell"></td><td class="table-cell"></td>
+                        </tr>
+                    {% endif %}
+
+                    <!-- Estructuras de montaje -->
+                    {% if sugerencias.estructuras %}
+                        {% with sug=sugerencias.estructuras %}
+                        <tr class="hover:bg-canvas-50 transition-base">
+                            <td class="table-cell font-medium capitalize">Estructuras de montaje</td>
+                            <td class="table-cell">
+                                <a href="{% url 'equipo_detail' sug.equipo.pk %}" class="text-solar-600 hover:text-solar-700 transition-base">
+                                    {{ sug.equipo.fabricante }} {{ sug.equipo.modelo }}
+                                </a>
+                                <span class="text-xs text-ink-400 ml-1 font-mono">{{ sug.equipo.potencia_nominal_w }}W</span>
+                            </td>
+                            <td class="table-cell text-center font-mono">{{ sug.cantidad }}</td>
+                            <td class="table-cell text-right font-mono">${{ sug.equipo.precio_venta|floatformat:0|intcomma }}</td>
+                            <td class="table-cell text-right font-mono font-semibold">
+                                <span data-subtotal data-price="{{ sug.equipo.precio_venta }}" data-qty="{{ sug.cantidad }}">-</span>
+                            </td>
+                            <td class="table-cell text-center">
+                                <button type="button" class="select-suggested-btn btn-secondary text-xs px-3 py-1" data-equipo-id="{{ sug.equipo.pk }}" data-cantidad="{{ sug.cantidad }}" data-key="estructuras">
+                                    {% if sug.equipo.pk in selected_equipo_ids %}Actualizar{% else %}Usar este{% endif %}
+                                </button>
+                            </td>
+                        </tr>
+                        {% endwith %}
+                    {% else %}
+                        <tr class="bg-canvas-50 text-ink-400">
+                            <td class="table-cell font-medium">Estructuras de montaje</td>
+                            <td class="table-cell italic text-xs">Sin sugerencias</td>
+                            <td class="table-cell"></td><td class="table-cell"></td><td class="table-cell"></td><td class="table-cell"></td>
+                        </tr>
+                    {% endif %}
+
+                    <!-- Cableado -->
+                    {% if sugerencias.cableado %}
+                        {% with sug=sugerencias.cableado %}
+                        <tr class="hover:bg-canvas-50 transition-base">
+                            <td class="table-cell font-medium capitalize">Cableado</td>
+                            <td class="table-cell">
+                                <a href="{% url 'equipo_detail' sug.equipo.pk %}" class="text-solar-600 hover:text-solar-700 transition-base">
+                                    {{ sug.equipo.fabricante }} {{ sug.equipo.modelo }}
+                                </a>
+                                <span class="text-xs text-ink-400 ml-1 font-mono">{{ sug.equipo.potencia_nominal_w }}W</span>
+                            </td>
+                            <td class="table-cell text-center font-mono">{{ sug.cantidad }}</td>
+                            <td class="table-cell text-right font-mono">${{ sug.equipo.precio_venta|floatformat:0|intcomma }}</td>
+                            <td class="table-cell text-right font-mono font-semibold">
+                                <span data-subtotal data-price="{{ sug.equipo.precio_venta }}" data-qty="{{ sug.cantidad }}">-</span>
+                            </td>
+                            <td class="table-cell text-center">
+                                <button type="button" class="select-suggested-btn btn-secondary text-xs px-3 py-1" data-equipo-id="{{ sug.equipo.pk }}" data-cantidad="{{ sug.cantidad }}" data-key="cableado">
+                                    {% if sug.equipo.pk in selected_equipo_ids %}Actualizar{% else %}Usar este{% endif %}
+                                </button>
+                            </td>
+                        </tr>
+                        {% endwith %}
+                    {% else %}
+                        <tr class="bg-canvas-50 text-ink-400">
+                            <td class="table-cell font-medium">Cableado</td>
+                            <td class="table-cell italic text-xs">Sin sugerencias</td>
+                            <td class="table-cell"></td><td class="table-cell"></td><td class="table-cell"></td><td class="table-cell"></td>
+                        </tr>
+                    {% endif %}
+
+                    <!-- Protecciones eléctrica -->
+                    {% if sugerencias.protecciones %}
+                        {% with sug=sugerencias.protecciones %}
+                        <tr class="hover:bg-canvas-50 transition-base">
+                            <td class="table-cell font-medium capitalize">Protecciones eléctrica</td>
+                            <td class="table-cell">
+                                <a href="{% url 'equipo_detail' sug.equipo.pk %}" class="text-solar-600 hover:text-solar-700 transition-base">
+                                    {{ sug.equipo.fabricante }} {{ sug.equipo.modelo }}
+                                </a>
+                                <span class="text-xs text-ink-400 ml-1 font-mono">{{ sug.equipo.potencia_nominal_w }}W</span>
+                            </td>
+                            <td class="table-cell text-center font-mono">{{ sug.cantidad }}</td>
+                            <td class="table-cell text-right font-mono">${{ sug.equipo.precio_venta|floatformat:0|intcomma }}</td>
+                            <td class="table-cell text-right font-mono font-semibold">
+                                <span data-subtotal data-price="{{ sug.equipo.precio_venta }}" data-qty="{{ sug.cantidad }}">-</span>
+                            </td>
+                            <td class="table-cell text-center">
+                                <button type="button" class="select-suggested-btn btn-secondary text-xs px-3 py-1" data-equipo-id="{{ sug.equipo.pk }}" data-cantidad="{{ sug.cantidad }}" data-key="protecciones">
+                                    {% if sug.equipo.pk in selected_equipo_ids %}Actualizar{% else %}Usar este{% endif %}
+                                </button>
+                            </td>
+                        </tr>
+                        {% endwith %}
+                    {% else %}
+                        <tr class="bg-canvas-50 text-ink-400">
+                            <td class="table-cell font-medium">Protecciones eléctrica</td>
+                            <td class="table-cell italic text-xs">Sin sugerencias</td>
+                            <td class="table-cell"></td><td class="table-cell"></td><td class="table-cell"></td><td class="table-cell"></td>
+                        </tr>
+                    {% endif %}
+
+                    <!-- Medidores -->
+                    {% if sugerencias.medidores %}
+                        {% with sug=sugerencias.medidores %}
+                        <tr class="hover:bg-canvas-50 transition-base">
+                            <td class="table-cell font-medium capitalize">Medidores</td>
+                            <td class="table-cell">
+                                <a href="{% url 'equipo_detail' sug.equipo.pk %}" class="text-solar-600 hover:text-solar-700 transition-base">
+                                    {{ sug.equipo.fabricante }} {{ sug.equipo.modelo }}
+                                </a>
+                                <span class="text-xs text-ink-400 ml-1 font-mono">{{ sug.equipo.potencia_nominal_w }}W</span>
+                            </td>
+                            <td class="table-cell text-center font-mono">{{ sug.cantidad }}</td>
+                            <td class="table-cell text-right font-mono">${{ sug.equipo.precio_venta|floatformat:0|intcomma }}</td>
+                            <td class="table-cell text-right font-mono font-semibold">
+                                <span data-subtotal data-price="{{ sug.equipo.precio_venta }}" data-qty="{{ sug.cantidad }}">-</span>
+                            </td>
+                            <td class="table-cell text-center">
+                                <button type="button" class="select-suggested-btn btn-secondary text-xs px-3 py-1" data-equipo-id="{{ sug.equipo.pk }}" data-cantidad="{{ sug.cantidad }}" data-key="medidores">
+                                    {% if sug.equipo.pk in selected_equipo_ids %}Actualizar{% else %}Usar este{% endif %}
+                                </button>
+                            </td>
+                        </tr>
+                        {% endwith %}
+                    {% else %}
+                        <tr class="bg-canvas-50 text-ink-400">
+                            <td class="table-cell font-medium">Medidores</td>
+                            <td class="table-cell italic text-xs">Sin sugerencias</td>
+                            <td class="table-cell"></td><td class="table-cell"></td><td class="table-cell"></td><td class="table-cell"></td>
+                        </tr>
+                    {% endif %}
+
+                    <!-- Accesorios -->
+                    {% if sugerencias.accesorios %}
+                        {% with sug=sugerencias.accesorios %}
+                        <tr class="hover:bg-canvas-50 transition-base">
+                            <td class="table-cell font-medium capitalize">Accesorios</td>
+                            <td class="table-cell">
+                                <a href="{% url 'equipo_detail' sug.equipo.pk %}" class="text-solar-600 hover:text-solar-700 transition-base">
+                                    {{ sug.equipo.fabricante }} {{ sug.equipo.modelo }}
+                                </a>
+                                <span class="text-xs text-ink-400 ml-1 font-mono">{{ sug.equipo.potencia_nominal_w }}W</span>
+                            </td>
+                            <td class="table-cell text-center font-mono">{{ sug.cantidad }}</td>
+                            <td class="table-cell text-right font-mono">${{ sug.equipo.precio_venta|floatformat:0|intcomma }}</td>
+                            <td class="table-cell text-right font-mono font-semibold">
+                                <span data-subtotal data-price="{{ sug.equipo.precio_venta }}" data-qty="{{ sug.cantidad }}">-</span>
+                            </td>
+                            <td class="table-cell text-center">
+                                <button type="button" class="select-suggested-btn btn-secondary text-xs px-3 py-1" data-equipo-id="{{ sug.equipo.pk }}" data-cantidad="{{ sug.cantidad }}" data-key="accesorios">
+                                    {% if sug.equipo.pk in selected_equipo_ids %}Actualizar{% else %}Usar este{% endif %}
+                                </button>
+                            </td>
+                        </tr>
+                        {% endwith %}
+                    {% else %}
+                        <tr class="bg-canvas-50 text-ink-400">
+                            <td class="table-cell font-medium">Accesorios</td>
+                            <td class="table-cell italic text-xs">Sin sugerencias</td>
+                            <td class="table-cell"></td><td class="table-cell"></td><td class="table-cell"></td><td class="table-cell"></td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <!-- Equipment Selection Panel -->
         <div class="lg:col-span-1">
@@ -248,7 +511,7 @@
                                 data-category="{{ categoria_label }}">
                             <option value="">-- Seleccionar equipo --</option>
                             {% for equipo in equipos %}
-                            <option value="{{ equipo.pk }}" data-nombre="{{ equipo.fabricante }} {{ equipo.modelo }}" data-precio="{{ equipo.precio_venta }}">
+                            <option value="{{ equipo.pk }}" data-nombre="{{ equipo.fabricante }} {{ equipo.modelo }}" data-precio="{{ equipo.precio_venta }}" data-stock="{{ equipo.stock }}">
                                 {{ equipo.fabricante }} {{ equipo.modelo }} - {{ equipo.potencia_nominal_w }}W
                             </option>
                             {% endfor %}
@@ -289,14 +552,17 @@
                             <div class="text-right ml-4">
                                 <div class="flex items-center gap-2 mb-2 justify-end">
                                     <button class="qty-minus px-2 py-1 bg-canvas-200 hover:bg-canvas-300 rounded text-sm" data-selected-id="{{ sel.pk }}">−</button>
-                                    <span class="qty-display w-8 text-center font-semibold">{{ sel.cantidad }}</span>
+                                    <input type="number" class="qty-input w-12 text-center font-semibold border border-canvas-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-solar-500" data-selected-id="{{ sel.pk }}" value="{{ sel.cantidad }}" min="1" max="100">
                                     <button class="qty-plus px-2 py-1 bg-canvas-200 hover:bg-canvas-300 rounded text-sm" data-selected-id="{{ sel.pk }}">+</button>
                                 </div>
-                                <p class="text-sm font-semibold text-solar-600">${{ sel.equipo.precio_venta|floatformat:0|intcomma }}</p>
+                                <p class="text-sm font-semibold text-solar-600" data-price="{{ sel.equipo.precio_venta }}">${{ sel.equipo.precio_venta|floatformat:0|intcomma }}</p>
                                 <p class="text-xs text-ink-500">c/u</p>
                             </div>
-                            <button class="remove-equipment ml-2 text-red-500 hover:text-red-700 transition-base" data-selected-id="{{ sel.pk }}" title="Eliminar">
+                            <button class="remove-equipment ml-2 text-red-500 hover:text-red-700 transition-base group relative" data-selected-id="{{ sel.pk }}" title="Eliminar equipo">
                                 <i class="fas fa-trash-alt"></i>
+                                <span class="absolute right-full mr-2 hidden group-hover:block bg-red-600 text-white text-xs py-1 px-2 rounded whitespace-nowrap z-10">
+                                    Click para eliminar
+                                </span>
                             </button>
                         </div>
                         {% endfor %}
@@ -327,25 +593,60 @@
     </div>
 </div>
 
-<!-- TAB 3: ANÁLISIS COMPARATIVO -->
-<div id="tab-comparacion" class="tab-content hidden">
-    <div class="card p-6 mb-6">
-        <h3 class="text-lg font-semibold text-ink-800 mb-4 text-blue-700">
-            <i class="fas fa-exchange-alt mr-2"></i>En construcción
-        </h3>
-        <p class="text-ink-600">Próximamente podrá comparar diferentes configuraciones de equipos y ver el impacto financiero.</p>
-    </div>
-</div>
+
 
 <!-- Actions -->
 <div class="flex items-center justify-center gap-4 mb-6">
     <a href="{% url 'proyecto_detail' proyecto.pk %}" class="btn-secondary">
         <i class="fas fa-arrow-left mr-2"></i> Volver al proyecto
     </a>
-    <a href="{% url 'cotizacion_crear_desde_proyecto' proyecto.pk %}" class="btn-success text-lg px-8 py-3">
-        <i class="fas fa-file-invoice-dollar mr-2"></i> Generar cotización con estos equipos
-    </a>
+    <form id="cotizacion-form" method="POST" action="{% url 'cotizacion_crear_desde_proyecto' proyecto.pk %}" style="display: inline;">
+        {% csrf_token %}
+        <button type="button" id="generate-cotizacion-btn" class="btn-success text-lg px-8 py-3">
+            <i class="fas fa-file-invoice-dollar mr-2"></i> Generar cotización con estos equipos
+        </button>
+    </form>
 </div>
+
+<script>
+// Handle generate cotizacion button
+document.getElementById('generate-cotizacion-btn').addEventListener('click', function() {
+    const selectedItems = document.querySelectorAll('.equipment-item');
+    
+    if (selectedItems.length === 0) {
+        showNotification('Por favor selecciona al menos un equipo', 'warning', 3000);
+        return;
+    }
+    
+    // Get the form and clear any existing equipment inputs
+    const form = document.getElementById('cotizacion-form');
+    const existingInputs = form.querySelectorAll('input[name="equipment_ids"]');
+    existingInputs.forEach(input => input.remove());
+    
+    // Collect all equipment IDs
+    const equipmentIds = [];
+    selectedItems.forEach(item => {
+        const id = item.dataset.selectedId;
+        if (id) {
+            equipmentIds.push(id);
+            // Create hidden input for each equipment ID
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'equipment_ids';
+            input.value = id;
+            form.appendChild(input);
+        }
+    });
+    
+    if (equipmentIds.length === 0) {
+        showNotification('Error: No se pudieron obtener los IDs de los equipos', 'error', 3000);
+        return;
+    }
+    
+    // Submit the form
+    form.submit();
+});
+</script>
 
 {% else %}
 <div class="card p-12 text-center">
@@ -523,76 +824,643 @@ if (typeof Plotly !== 'undefined') {
     });
 }
 
-// Equipment Selection Management
+// Global functions for equipment management
+const proyectoId = {{ proyecto.pk }};
+const totalCostEl = document.getElementById('total-cost');
+
+// Notification toast system
+function showNotification(message, type = 'info', duration = 4000) {
+    const container = document.getElementById('notification-container');
+    if (!container) return;
+    
+    const toast = document.createElement('div');
+    const bgColor = {
+        'error': 'bg-red-500',
+        'success': 'bg-green-500',
+        'warning': 'bg-yellow-500',
+        'info': 'bg-blue-500'
+    }[type] || 'bg-blue-500';
+    
+    const icon = {
+        'error': 'fas fa-exclamation-circle',
+        'success': 'fas fa-check-circle',
+        'warning': 'fas fa-exclamation-triangle',
+        'info': 'fas fa-info-circle'
+    }[type] || 'fas fa-info-circle';
+    
+    toast.className = `${bgColor} text-white px-6 py-4 rounded-lg shadow-lg flex items-center gap-3 mb-3 animate-pulse`;
+    toast.innerHTML = `
+        <i class="${icon}"></i>
+        <span>${message}</span>
+        <button class="ml-auto text-white hover:opacity-80" onclick="this.parentElement.remove()">
+            <i class="fas fa-times"></i>
+        </button>
+    `;
+    
+    container.appendChild(toast);
+    
+    // Auto-remove after duration
+    setTimeout(() => {
+        if (toast.parentElement) {
+            toast.style.animation = 'fadeOut 0.3s ease-in-out';
+            setTimeout(() => toast.remove(), 300);
+        }
+    }, duration);
+    
+    // Add animation keyframe if not exists
+    if (!document.getElementById('toast-animation-style')) {
+        const style = document.createElement('style');
+        style.id = 'toast-animation-style';
+        style.textContent = `
+            @keyframes fadeOut {
+                from { opacity: 1; transform: translateX(0); }
+                to { opacity: 0; transform: translateX(100px); }
+            }
+        `;
+        document.head.appendChild(style);
+    }
+}
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+function updateTotalCost() {
+    let totalCost = 0;
+    let totalQty = 0;
+    const equipmentItems = document.querySelectorAll('.equipment-item');
+    equipmentItems.forEach(item => {
+        const priceEl = item.querySelector('p[data-price]');
+        if (priceEl) {
+            const price = parseFloat(priceEl.getAttribute('data-price')) || 0;
+            const qtyInput = item.querySelector('.qty-input');
+            if (qtyInput) {
+                const qty = parseInt(qtyInput.value) || 1;
+                totalCost += price * qty;
+                totalQty += qty;
+            }
+        }
+    });
+    if (totalCostEl) {
+        totalCostEl.textContent = '$' + totalCost.toLocaleString('es-CO', {maximumFractionDigits: 0});
+    }
+    
+    // Update total quantity
+    const totalQtyEl = document.getElementById('total-qty');
+    if (totalQtyEl) {
+        totalQtyEl.textContent = totalQty;
+    }
+}
+
+function updateEquipmentQty(selectedId, change) {
+    try {
+        console.log('updateEquipmentQty called with:', {selectedId, change});
+        
+        fetch(`/api/proyectos/${proyectoId}/equipment/${selectedId}/update/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken'),
+            },
+            body: JSON.stringify({
+                qty_change: change
+            })
+        })
+        .then(response => {
+            console.log('Response status:', response.status);
+            if (!response.ok) {
+                // Try to parse JSON, fallback to text if it's HTML error
+                return response.text().then(text => {
+                    try {
+                        const data = JSON.parse(text);
+                        throw new Error(data.error || `Error ${response.status}: No se pudo actualizar la cantidad`);
+                    } catch (e) {
+                        // If JSON parse fails, it's probably HTML error
+                        throw new Error(`Error del servidor (${response.status}): Por favor intenta de nuevo`);
+                    }
+                });
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log('Success data:', data);
+            // Update the input value with the new quantity
+            const qtyInput = document.querySelector(`input.qty-input[data-selected-id="${selectedId}"]`);
+            if (qtyInput) {
+                const newValue = data.nueva_cantidad || (parseInt(qtyInput.value || '1') + change);
+                qtyInput.value = newValue;
+                qtyInput.dataset.initialValue = newValue;
+                
+                // Visual feedback - highlight the input briefly
+                qtyInput.style.backgroundColor = '#fef3c7';
+                setTimeout(() => {
+                    qtyInput.style.backgroundColor = '';
+                }, 500);
+            }
+            updateTotalCost();
+            // Recalculate dimensioning (sin recargar la página)
+            recalculateDimensioning();
+        })
+        .catch(error => {
+            console.error('Error in updateEquipmentQty:', error);
+            showNotification('Error: ' + error.message, 'error', 5000);
+        });
+    } catch (e) {
+        console.error('Exception in updateEquipmentQty:', e);
+    }
+}
+
+function removeEquipment(selectedId) {
+    const item = document.querySelector(`div.equipment-item[data-selected-id="${selectedId}"]`);
+    const removeBtn = item ? item.querySelector('.remove-equipment') : null;
+    
+    // Check if already in confirmation state
+    if (removeBtn && removeBtn.dataset.confirmPending === 'true') {
+        // Second click - proceed with deletion
+        removeBtn.dataset.confirmPending = 'false';
+        
+        // Visual feedback - fade out the item
+        if (item) {
+            item.style.opacity = '0.5';
+            item.style.transform = 'scale(0.95)';
+            item.style.transition = 'all 0.3s ease';
+        }
+
+        fetch(`/api/proyectos/${proyectoId}/equipment/${selectedId}/remove/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken'),
+            }
+        })
+        .then(response => {
+            if (!response.ok) {
+                return response.text().then(text => {
+                    try {
+                        const data = JSON.parse(text);
+                        throw new Error(data.error || `Error ${response.status}: No se pudo eliminar el equipo`);
+                    } catch (e) {
+                        throw new Error(`Error del servidor (${response.status}): Por favor intenta de nuevo`);
+                    }
+                });
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log('Equipment removed successfully');
+            // Remove the equipment item from DOM with animation
+            if (item) {
+                setTimeout(() => {
+                    item.remove();
+                    updateTotalCost();
+                }, 300);
+            } else {
+                updateTotalCost();
+            }
+            // Recalculate dimensioning
+            recalculateDimensioning();
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showNotification('Error: ' + error.message, 'error', 5000);
+            // Restore visual state on error
+            if (item) {
+                item.style.opacity = '1';
+                item.style.transform = 'scale(1)';
+                removeBtn.dataset.confirmPending = 'false';
+            }
+        });
+    } else {
+        // First click - enter confirmation state
+        if (removeBtn) {
+            removeBtn.dataset.confirmPending = 'true';
+            removeBtn.classList.remove('text-red-500', 'hover:text-red-700');
+            removeBtn.classList.add('text-red-700', 'bg-red-100', 'rounded', 'px-2', 'py-1');
+            removeBtn.style.backgroundColor = '#fecaca';
+            removeBtn.style.color = '#991b1b';
+            
+            // Update tooltip text
+            const tooltip = removeBtn.querySelector('span');
+            if (tooltip) {
+                tooltip.textContent = 'Click de nuevo para confirmar';
+                tooltip.style.display = 'block';
+            }
+            
+            // Reset after 3 seconds if no second click
+            setTimeout(() => {
+                if (removeBtn.dataset.confirmPending === 'true') {
+                    removeBtn.dataset.confirmPending = 'false';
+                    removeBtn.classList.remove('text-red-700');
+                    removeBtn.classList.add('text-red-500', 'hover:text-red-700');
+                    removeBtn.style.backgroundColor = '';
+                    removeBtn.style.color = '';
+                    
+                    const tooltip = removeBtn.querySelector('span');
+                    if (tooltip) {
+                        tooltip.textContent = 'Click para eliminar';
+                        tooltip.style.display = '';
+                    }
+                }
+            }, 3000);
+        }
+    }
+}
+
+function recalculateDimensioning() {
+    fetch(`/api/proyectos/${proyectoId}/recalculate/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken'),
+        }
+    })
+    .then(response => {
+        if (!response.ok) {
+            return response.text().then(text => {
+                throw new Error(`HTTP ${response.status}: ${text.substring(0, 200)}`);
+            });
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.success) {
+            // Update TAB 1 values (sin cambiar de pestaña)
+            updateTab1Values(data.resultado);
+            
+            // Show alerts
+            displayEquipmentAlerts(data.alertas);
+            
+            console.log('Dimensioning recalculated successfully');
+        } else {
+            const errorMsg = data.error || 'Error en el cálculo del dimensionamiento';
+            console.error('Error:', errorMsg);
+            showNotification('Error en dimensionamiento: ' + errorMsg, 'error', 5000);
+        }
+    })
+    .catch(error => {
+        console.error('Error recalculating:', error);
+        const errorMsg = error instanceof Error ? error.message : String(error || 'Error desconocido');
+        showNotification('Error al recalcular: ' + errorMsg, 'error', 5000);
+    });
+}
+
+function updateTab1Values(resultado) {
+    // Update summary cards
+    const potenciaEl = document.getElementById('value-potencia-pico');
+    if (potenciaEl) potenciaEl.textContent = (resultado.potencia_pico_kwp || 0).toFixed(2);
+    
+    const panelsEl = document.getElementById('value-numero-paneles');
+    if (panelsEl) panelsEl.textContent = resultado.numero_paneles || 0;
+    
+    const generacionEl = document.getElementById('value-generacion-mensual');
+    if (generacionEl) generacionEl.textContent = Math.round(resultado.generacion_mensual_kwh || 0).toLocaleString('es-CO');
+    
+    const coberturaEl = document.getElementById('value-cobertura');
+    if (coberturaEl) coberturaEl.textContent = Math.round(resultado.porcentaje_cobertura || 0);
+    
+    // Update detail values
+    const detailGen = document.getElementById('detail-generacion-mensual');
+    if (detailGen) detailGen.textContent = Math.round(resultado.generacion_mensual_kwh || 0).toLocaleString('es-CO') + ' kWh';
+    
+    const detailArea = document.getElementById('detail-area-requerida');
+    if (detailArea && resultado.area_requerida_m2) {
+        detailArea.textContent = resultado.area_requerida_m2 + ' m²';
+    }
+    
+    const detailInversor = document.getElementById('detail-inversor-potencia');
+    if (detailInversor && resultado.inversor_potencia_kw) {
+        detailInversor.textContent = resultado.inversor_potencia_kw + ' kW';
+    }
+    
+    const detailCO2 = document.getElementById('detail-co2-evitado');
+    if (detailCO2 && resultado.co2_evitado_ton_ano) {
+        detailCO2.textContent = resultado.co2_evitado_ton_ano + ' ton';
+    }
+    
+    const detailCosto = document.getElementById('detail-costo-estimado');
+    if (detailCosto && resultado.costo_estimado_sistema) {
+        detailCosto.textContent = '$' + Math.round(resultado.costo_estimado_sistema).toLocaleString('es-CO');
+    }
+    
+    const detailAhorroMensual = document.getElementById('detail-ahorro-mensual');
+    if (detailAhorroMensual && resultado.ahorro_mensual_cop) {
+        detailAhorroMensual.textContent = '$' + Math.round(resultado.ahorro_mensual_cop).toLocaleString('es-CO');
+    }
+    
+    const detailAhorroAnual = document.getElementById('detail-ahorro-anual');
+    if (detailAhorroAnual && resultado.ahorro_anual_cop) {
+        detailAhorroAnual.textContent = '$' + Math.round(resultado.ahorro_anual_cop).toLocaleString('es-CO');
+    }
+    
+    const detailROI = document.getElementById('detail-roi-anos');
+    if (detailROI && resultado.roi_anos) {
+        detailROI.textContent = (resultado.roi_anos || 0).toFixed(1) + ' años';
+    }
+    
+    const detailAhorroAccum = document.getElementById('detail-ahorro-acumulado');
+    if (detailAhorroAccum && resultado.ahorro_acumulado_25_anos) {
+        detailAhorroAccum.textContent = '$' + Math.round(resultado.ahorro_acumulado_25_anos).toLocaleString('es-CO');
+    }
+}
+
+function displayEquipmentAlerts(alertas) {
+    const container = document.getElementById('equipment-alerts-container');
+    if (!container) return;
+    
+    container.innerHTML = '';
+    
+    if (!alertas || alertas.length === 0) {
+        return;
+    }
+    
+    alertas.forEach(alerta => {
+        const bgColor = alerta.tipo === 'critico' ? 'bg-red-50 border-red-200' : 'bg-yellow-50 border-yellow-200';
+        const textColor = alerta.tipo === 'critico' ? 'text-red-800' : 'text-yellow-800';
+        const icon = alerta.tipo === 'critico' ? 'fas fa-exclamation-circle' : 'fas fa-exclamation-triangle';
+        
+        const alertDiv = document.createElement('div');
+        alertDiv.className = `mb-4 p-4 border rounded-lg text-sm ${bgColor} ${textColor}`;
+        alertDiv.innerHTML = `<i class="${icon} mr-2"></i> ${alerta.mensaje}`;
+        container.appendChild(alertDiv);
+    });
+}
+
+// Global event delegation for button clicks
+document.addEventListener('click', function(e) {
+    const qtyPlusBtn = e.target.closest('.qty-plus');
+    const qtyMinusBtn = e.target.closest('.qty-minus');
+    const removeBtn = e.target.closest('.remove-equipment');
+
+    console.log('Click detected:', {qtyPlusBtn: !!qtyPlusBtn, qtyMinusBtn: !!qtyMinusBtn, removeBtn: !!removeBtn});
+
+    if (qtyPlusBtn) {
+        e.preventDefault();
+        const selectedId = qtyPlusBtn.dataset.selectedId;
+        console.log('Qty+ clicked, selectedId:', selectedId);
+        updateEquipmentQty(selectedId, 1);
+    } else if (qtyMinusBtn) {
+        e.preventDefault();
+        const selectedId = qtyMinusBtn.dataset.selectedId;
+        console.log('Qty- clicked, selectedId:', selectedId);
+        updateEquipmentQty(selectedId, -1);
+    } else if (removeBtn) {
+        e.preventDefault();
+        const selectedId = removeBtn.dataset.selectedId;
+        console.log('Remove clicked, selectedId:', selectedId);
+        removeEquipment(selectedId);
+    }
+});
+
+// Global event delegation for input changes
+document.addEventListener('change', function(e) {
+    if (e.target.classList.contains('qty-input')) {
+        const selectedId = e.target.dataset.selectedId;
+        const newQty = parseInt(e.target.value || '1', 10);
+        const initialQty = parseInt(e.target.dataset.initialValue || '1', 10);
+        
+        console.log('Qty input changed:', {selectedId, newQty, initialQty});
+        
+        // Validate input
+        if (newQty < 1) {
+            e.target.value = initialQty;
+            showNotification('La cantidad debe ser mayor a 0', 'warning', 3000);
+            return;
+        }
+        if (newQty > 100) {
+            e.target.value = initialQty;
+            showNotification('La cantidad no puede ser mayor a 100', 'warning', 3000);
+            return;
+        }
+        
+        const change = newQty - initialQty;
+        if (change !== 0) {
+            updateEquipmentQty(selectedId, change);
+            updateTotalCost();
+        }
+    }
+});
+
+// Global event delegation for input focus
+document.addEventListener('focus', function(e) {
+    if (e.target.classList.contains('qty-input')) {
+        e.target.dataset.initialValue = e.target.value;
+        console.log('Input focused, initialValue saved:', e.target.dataset.initialValue);
+    }
+}, true);
+
+// Equipment Selection Management - only DOMContentLoaded specific code
 document.addEventListener('DOMContentLoaded', function() {
-    const proyectoId = {{ proyecto.pk }};
     const addBtn = document.getElementById('add-equipment-btn');
     const equipmentQty = document.getElementById('equipment-qty');
     const equipmentSelects = document.querySelectorAll('.equipment-select');
-    const totalCostEl = document.getElementById('total-cost');
 
-    // Calculate and display total cost
-    function updateTotalCost() {
-        let totalCost = 0;
-        const equipmentItems = document.querySelectorAll('.equipment-item');
-        equipmentItems.forEach(item => {
-            const priceText = item.querySelector('p.text-solar-600');
-            if (priceText) {
-                const price = parseFloat(priceText.textContent.replace('$', '').replace(/,/g, '')) || 0;
-                const qtySpan = item.querySelector('.qty-display');
-                const qty = parseInt(qtySpan.textContent) || 1;
-                totalCost += price * qty;
-            }
-        });
-        if (totalCostEl) {
-            totalCostEl.textContent = '$' + totalCost.toLocaleString('es-CO', {maximumFractionDigits: 0});
-        }
-    }
+    // Render subtotal values in suggested table.
+    document.querySelectorAll('[data-subtotal]').forEach(el => {
+        const price = parseFloat(el.dataset.price || '0');
+        const qty = parseInt(el.dataset.qty || '0', 10);
+        const subtotal = price * qty;
+        el.textContent = '$' + subtotal.toLocaleString('es-CO', {maximumFractionDigits: 0});
+    });
 
     // Update total on page load
     updateTotalCost();
 
-    // Add equipment
-    addBtn.addEventListener('click', function() {
-        let selectedEquipoId = null;
-        let selectedCategoria = null;
+    // Add equipment button
+    if (addBtn) {
+        addBtn.addEventListener('click', function() {
+            let selectedEquipoId = null;
+            let selectedCategoria = null;
+            let selectedEquipoName = null;
+            let selectedEquipoPrice = null;
+            let selectedEquipoStock = null;
+            let selectedSelect = null;
 
-        // Find which select has a value
-        equipmentSelects.forEach(select => {
-            if (select.value) {
-                selectedEquipoId = select.value;
-                selectedCategoria = select.dataset.category;
+            // Find which select has a value
+            equipmentSelects.forEach(select => {
+                if (select.value) {
+                    selectedEquipoId = select.value;
+                    selectedCategoria = select.dataset.category;
+                    selectedEquipoName = select.options[select.selectedIndex].dataset.nombre;
+                    selectedEquipoPrice = select.options[select.selectedIndex].dataset.precio;
+                    selectedEquipoStock = select.options[select.selectedIndex].dataset.stock;
+                    selectedSelect = select;
+                }
+            });
+
+            if (!selectedEquipoId) {
+                showNotification('Por favor, selecciona un equipo', 'warning', 3000);
+                return;
             }
+
+            if (!equipmentQty) {
+                showNotification('Error: No se pudo localizar el campo de cantidad', 'error', 3000);
+                return;
+            }
+
+            const qty = parseInt(equipmentQty.value) || 1;
+            if (qty < 1) {
+                showNotification('La cantidad debe ser mayor a 0', 'warning', 3000);
+                return;
+            }
+
+            // Map category to tipo_equipo
+            const tipoEquipoMap = {
+                'Panel Solar': 'panel',
+                'Inversor': 'inversor',
+                'Batería': 'bateria',
+                'Regulador de carga': 'regulador',
+                'Estructura de montaje': 'estructura',
+                'Cableado': 'otro',
+                'Protección eléctrica': 'otro',
+                'Medidor bidireccional': 'otro',
+                'Accesorio': 'otro',
+                'Otro': 'otro'
+            };
+            
+            const tipoEquipo = tipoEquipoMap[selectedCategoria] || 'otro';
+
+            // Send AJAX request to add equipment
+            fetch(`/api/proyectos/${proyectoId}/equipment/select/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken'),
+                },
+                body: JSON.stringify({
+                    equipo_id: selectedEquipoId,
+                    cantidad: qty,
+                    tipo_equipo: tipoEquipo
+                })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.text().then(text => {
+                        try {
+                            const data = JSON.parse(text);
+                            throw new Error(data.error || `Error HTTP ${response.status}`);
+                        } catch (e) {
+                            throw new Error(`Error al agregar equipo (${response.status}): ${text.substring(0, 100)}`);
+                        }
+                    });
+                }
+                return response.json();
+            })
+            .then(data => {
+                // Reset selects with null checks
+                if (equipmentSelects) {
+                    equipmentSelects.forEach(s => {
+                        if (s) s.value = '';
+                    });
+                }
+                if (equipmentQty) {
+                    equipmentQty.value = '1';
+                }
+                
+                showNotification('Equipo agregado correctamente', 'success', 3000);
+                
+                // Reload the selected equipment list to get the real IDs from the server
+                fetch(`/api/proyectos/${proyectoId}/equipment-list/`, {
+                    method: 'GET',
+                    headers: {
+                        'X-CSRFToken': getCookie('csrftoken'),
+                    }
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('No se pudo recargar la lista de equipos');
+                    }
+                    return response.json();
+                })
+                .then(equipmentData => {
+                    const selectedList = document.getElementById('selected-equipment-list');
+                    selectedList.innerHTML = '';
+                    
+                    if (!equipmentData.equipos || equipmentData.equipos.length === 0) {
+                        selectedList.innerHTML = `
+                            <div class="text-center py-8 text-ink-400">
+                                <i class="fas fa-inbox text-4xl mb-2 opacity-50"></i>
+                                <p class="text-sm">No hay equipos seleccionados aún</p>
+                                <p class="text-xs text-ink-500 mt-1">Selecciona equipos del panel izquierdo</p>
+                            </div>
+                        `;
+                    } else {
+                        equipmentData.equipos.forEach(sel => {
+                            const equipmentItemHtml = `
+                                <div class="equipment-item bg-canvas-50 p-4 rounded-lg border-l-4 border-solar-500 flex justify-between items-start" data-selected-id="${sel.id}">
+                                    <div class="flex-1">
+                                        <p class="font-medium text-ink-900">${sel.equipo_nombre}</p>
+                                        <p class="text-sm text-ink-500">${sel.tipo_equipo_display} · ${sel.categoria_display}</p>
+                                        <p class="text-xs text-ink-400 mt-1">${sel.potencia}W · Stock: ${sel.stock}</p>
+                                    </div>
+                                    <div class="text-right ml-4">
+                                        <div class="flex items-center gap-2 mb-2 justify-end">
+                                            <button class="qty-minus px-2 py-1 bg-canvas-200 hover:bg-canvas-300 rounded text-sm" data-selected-id="${sel.id}">−</button>
+                                            <input type="number" class="qty-input w-12 text-center font-semibold border border-canvas-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-solar-500" data-selected-id="${sel.id}" value="${sel.cantidad}" min="1" max="100">
+                                            <button class="qty-plus px-2 py-1 bg-canvas-200 hover:bg-canvas-300 rounded text-sm" data-selected-id="${sel.id}">+</button>
+                                        </div>
+                                        <p class="text-sm font-semibold text-solar-600" data-price="${sel.precio}">$${parseFloat(sel.precio).toLocaleString('es-CO', {maximumFractionDigits: 0})}</p>
+                                        <p class="text-xs text-ink-500">c/u</p>
+                                    </div>
+                                    <button class="remove-equipment ml-2 text-red-500 hover:text-red-700 transition-base group relative" data-selected-id="${sel.id}" title="Eliminar equipo">
+                                        <i class="fas fa-trash-alt"></i>
+                                        <span class="absolute right-full mr-2 hidden group-hover:block bg-red-600 text-white text-xs py-1 px-2 rounded whitespace-nowrap z-10">
+                                            Click para eliminar
+                                        </span>
+                                    </button>
+                                </div>
+                            `;
+                            selectedList.insertAdjacentHTML('beforeend', equipmentItemHtml);
+                        });
+                    }
+                    
+                    updateTotalCost();
+                    recalculateDimensioning();
+                })
+                .catch(error => {
+                    console.error('Error reloading equipment list:', error);
+                    // Fallback: reload page
+                    location.reload();
+                });
+            })
+            .catch(error => {
+                console.error('Error adding equipment:', error);
+                const errorMsg = error instanceof Error ? error.message : String(error || 'Error desconocido');
+                showNotification('Error: ' + errorMsg, 'error', 5000);
+            });
         });
+    }
 
-        if (!selectedEquipoId) {
-            alert('Por favor, selecciona un equipo');
+    // Add/update from suggested table
+    document.addEventListener('click', function(e) {
+        const btn = e.target.closest('.select-suggested-btn');
+        if (!btn) {
             return;
         }
 
-        const qty = parseInt(equipmentQty.value) || 1;
-        if (qty < 1) {
-            alert('La cantidad debe ser mayor a 0');
-            return;
-        }
+        const selectedEquipoId = btn.dataset.equipoId;
+        const qty = parseInt(btn.dataset.cantidad || '1', 10);
+        const key = btn.dataset.key || '';
 
-        // Map category to tipo_equipo
-        const tipoEquipoMap = {
-            'Panel Solar': 'panel',
-            'Inversor': 'inversor',
-            'Batería': 'bateria',
-            'Regulador de carga': 'regulador',
-            'Estructura de montaje': 'estructura',
-            'Cableado': 'cable',
-            'Protección eléctrica': 'proteccion',
-            'Medidor bidireccional': 'medidor',
-            'Accesorio': 'accesorio',
-            'Otro': 'otro'
+        const suggestionKeyToTipo = {
+            paneles: 'panel',
+            inversores: 'inversor',
+            baterias: 'bateria',
+            reguladores: 'regulador',
+            estructuras: 'estructura'
         };
-        
-        const tipoEquipo = tipoEquipoMap[selectedCategoria] || 'otro';
 
-        // Send AJAX request to add equipment
+        const tipoEquipo = suggestionKeyToTipo[key] || 'otro';
+
         fetch(`/api/proyectos/${proyectoId}/equipment/select/`, {
             method: 'POST',
             headers: {
@@ -607,225 +1475,26 @@ document.addEventListener('DOMContentLoaded', function() {
         })
         .then(response => {
             if (!response.ok) {
-                return response.json().then(data => {
-                    throw new Error(data.error || 'Error al agregar equipo');
+                return response.text().then(text => {
+                    try {
+                        const data = JSON.parse(text);
+                        throw new Error(data.error || `Error HTTP ${response.status}`);
+                    } catch (e) {
+                        throw new Error(`Error al seleccionar equipo (${response.status}): ${text.substring(0, 100)}`);
+                    }
                 });
             }
             return response.json();
         })
-        .then(data => {
-            // Reset selects
-            equipmentSelects.forEach(s => s.value = '');
-            equipmentQty.value = '1';
-            
-            // Reload the selected equipment list and recalculate
-            location.reload();
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('Error al agregar el equipo: ' + error.message);
-        });
-    });
-
-    // Handle quantity changes and removal
-    document.addEventListener('click', function(e) {
-        if (e.target.classList.contains('qty-plus')) {
-            const selectedId = e.target.dataset.selectedId;
-            updateEquipmentQty(selectedId, 1);
-        } else if (e.target.classList.contains('qty-minus')) {
-            const selectedId = e.target.dataset.selectedId;
-            updateEquipmentQty(selectedId, -1);
-        } else if (e.target.classList.contains('remove-equipment') || e.target.closest('.remove-equipment')) {
-            const btn = e.target.classList.contains('remove-equipment') ? e.target : e.target.closest('.remove-equipment');
-            const selectedId = btn.dataset.selectedId;
-            removeEquipment(selectedId);
-        }
-    });
-
-    function updateEquipmentQty(selectedId, change) {
-        fetch(`/api/proyectos/${proyectoId}/equipment/${selectedId}/update/`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': getCookie('csrftoken'),
-            },
-            body: JSON.stringify({
-                qty_change: change
-            })
-        })
-        .then(response => {
-            if (!response.ok) {
-                return response.json().then(data => {
-                    throw new Error(data.error || 'Error al actualizar cantidad');
-                });
-            }
-            return response.json();
-        })
-        .then(data => {
-            // Recalculate dimensioning
+        .then(() => {
             recalculateDimensioning();
         })
         .catch(error => {
-            console.error('Error:', error);
-            alert('Error al actualizar cantidad: ' + error.message);
+            console.error('Error selecting suggested equipment:', error);
+            const errorMsg = error instanceof Error ? error.message : String(error || 'Error desconocido');
+            showNotification('Error: ' + errorMsg, 'error', 5000);
         });
-    }
-
-    function removeEquipment(selectedId) {
-        if (!confirm('¿Estás seguro de que quieres eliminar este equipo?')) {
-            return;
-        }
-
-        fetch(`/api/proyectos/${proyectoId}/equipment/${selectedId}/remove/`, {
-            method: 'POST',
-            headers: {
-                'X-CSRFToken': getCookie('csrftoken'),
-            }
-        })
-        .then(response => {
-            if (!response.ok) {
-                return response.json().then(data => {
-                    throw new Error(data.error || 'Error al eliminar equipo');
-                });
-            }
-            return response.json();
-        })
-        .then(data => {
-            // Recalculate dimensioning
-            recalculateDimensioning();
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('Error al eliminar el equipo: ' + error.message);
-        });
-    }
-
-    // Recalculate dimensioning based on selected equipment
-    function recalculateDimensioning() {
-        fetch(`/api/proyectos/${proyectoId}/recalculate/`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': getCookie('csrftoken'),
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                // Update TAB 1 values
-                updateTab1Values(data.resultado);
-                
-                // Show alerts
-                displayEquipmentAlerts(data.alertas);
-                
-                // Reload equipment list
-                location.reload();
-            } else {
-                console.error('Error:', data.error);
-            }
-        })
-        .catch(error => {
-            console.error('Error recalculating:', error);
-        });
-    }
-
-    // Update TAB 1 with new values
-    function updateTab1Values(resultado) {
-        // Update summary cards
-        const potenciaEl = document.getElementById('value-potencia-pico');
-        if (potenciaEl) potenciaEl.textContent = (resultado.potencia_pico_kwp || 0).toFixed(2);
-        
-        const panelsEl = document.getElementById('value-numero-paneles');
-        if (panelsEl) panelsEl.textContent = resultado.numero_paneles || 0;
-        
-        const generacionEl = document.getElementById('value-generacion-mensual');
-        if (generacionEl) generacionEl.textContent = Math.round(resultado.generacion_mensual_kwh || 0);
-        
-        const coberturaEl = document.getElementById('value-cobertura');
-        if (coberturaEl) coberturaEl.textContent = Math.round(resultado.porcentaje_cobertura || 0);
-        
-        // Update detail values
-        const detailGen = document.getElementById('detail-generacion-mensual');
-        if (detailGen) detailGen.textContent = Math.round(resultado.generacion_mensual_kwh || 0) + ' kWh';
-        
-        const detailArea = document.getElementById('detail-area-requerida');
-        if (detailArea && resultado.area_requerida_m2) {
-            detailArea.textContent = resultado.area_requerida_m2 + ' m²';
-        }
-        
-        const detailInversor = document.getElementById('detail-inversor-potencia');
-        if (detailInversor && resultado.inversor_potencia_kw) {
-            detailInversor.textContent = resultado.inversor_potencia_kw + ' kW';
-        }
-        
-        const detailCO2 = document.getElementById('detail-co2-evitado');
-        if (detailCO2 && resultado.co2_evitado_ton_ano) {
-            detailCO2.textContent = resultado.co2_evitado_ton_ano + ' ton';
-        }
-        
-        const detailCosto = document.getElementById('detail-costo-estimado');
-        if (detailCosto && resultado.costo_estimado_sistema) {
-            detailCosto.textContent = '$' + Math.round(resultado.costo_estimado_sistema).toLocaleString('es-CO');
-        }
-        
-        const detailAhorroMensual = document.getElementById('detail-ahorro-mensual');
-        if (detailAhorroMensual && resultado.ahorro_mensual_cop) {
-            detailAhorroMensual.textContent = '$' + Math.round(resultado.ahorro_mensual_cop).toLocaleString('es-CO');
-        }
-        
-        const detailAhorroAnual = document.getElementById('detail-ahorro-anual');
-        if (detailAhorroAnual && resultado.ahorro_anual_cop) {
-            detailAhorroAnual.textContent = '$' + Math.round(resultado.ahorro_anual_cop).toLocaleString('es-CO');
-        }
-        
-        const detailROI = document.getElementById('detail-roi-anos');
-        if (detailROI && resultado.roi_anos) {
-            detailROI.textContent = (resultado.roi_anos || 0).toFixed(1) + ' años';
-        }
-        
-        const detailAhorroAccum = document.getElementById('detail-ahorro-acumulado');
-        if (detailAhorroAccum && resultado.ahorro_acumulado_25_anos) {
-            detailAhorroAccum.textContent = '$' + Math.round(resultado.ahorro_acumulado_25_anos).toLocaleString('es-CO');
-        }
-    }
-
-    // Display equipment alerts
-    function displayEquipmentAlerts(alertas) {
-        const container = document.getElementById('equipment-alerts-container');
-        if (!container) return;
-        
-        container.innerHTML = '';
-        
-        if (!alertas || alertas.length === 0) {
-            return;
-        }
-        
-        alertas.forEach(alerta => {
-            const bgColor = alerta.tipo === 'critico' ? 'bg-red-50 border-red-200' : 'bg-yellow-50 border-yellow-200';
-            const textColor = alerta.tipo === 'critico' ? 'text-red-800' : 'text-yellow-800';
-            const icon = alerta.tipo === 'critico' ? 'fas fa-exclamation-circle' : 'fas fa-exclamation-triangle';
-            
-            const alertDiv = document.createElement('div');
-            alertDiv.className = `mb-4 p-4 border rounded-lg text-sm ${bgColor} ${textColor}`;
-            alertDiv.innerHTML = `<i class="${icon} mr-2"></i> ${alerta.mensaje}`;
-            container.appendChild(alertDiv);
-        });
-    }
-
-    function getCookie(name) {
-        let cookieValue = null;
-        if (document.cookie && document.cookie !== '') {
-            const cookies = document.cookie.split(';');
-            for (let i = 0; i < cookies.length; i++) {
-                const cookie = cookies[i].trim();
-                if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                    break;
-                }
-            }
-        }
-        return cookieValue;
-    }
+    });
 });
 </script>
 {% endlocalize %}

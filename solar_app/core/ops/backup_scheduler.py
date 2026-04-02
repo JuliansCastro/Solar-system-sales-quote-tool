@@ -5,7 +5,6 @@ Integrates backup routines into Django app lifecycle.
 import logging
 import os
 from datetime import datetime, timezone
-from pathlib import Path
 
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
@@ -17,7 +16,6 @@ logger = logging.getLogger(__name__)
 
 # Global scheduler instance
 _scheduler: BackgroundScheduler | None = None
-_last_backup_date = None
 
 
 def get_scheduler_config() -> dict:
@@ -25,7 +23,7 @@ def get_scheduler_config() -> dict:
     Get backup scheduler configuration.
     
     Returns:
-        dict: Configuration for hourly, daily, and monthly backup schedules.
+        dict: Configuration for hourly and monthly backup schedules.
               Can be customized via environment variables.
     """
     return {
@@ -35,13 +33,6 @@ def get_scheduler_config() -> dict:
             'interval': int(os.getenv('BACKUP_INTERVAL_HOURS', '1')),  # Every hour
             'enabled': os.getenv('BACKUP_HOURLY_ENABLED', 'true').lower() == 'true',
         },
-        'daily': {
-            'label': 'daily',
-            'retention_hours': int(os.getenv('BACKUP_DAILY_RETENTION_HOURS', '336')),  # 14 days
-            'hour': int(os.getenv('BACKUP_DAILY_HOUR', '18')),  # 6:00 PM
-            'minute': int(os.getenv('BACKUP_DAILY_MINUTE', '0')),
-            'enabled': os.getenv('BACKUP_DAILY_ENABLED', 'true').lower() == 'true',
-        },
         'monthly': {
             'label': 'monthly',
             'retention_hours': int(os.getenv('BACKUP_RETENTION_MONTHS', '2592')),  # 3 months
@@ -49,6 +40,13 @@ def get_scheduler_config() -> dict:
             'hour': int(os.getenv('BACKUP_MONTHLY_HOUR', '3')),  # 3:00 AM
             'minute': int(os.getenv('BACKUP_MONTHLY_MINUTE', '30')),  # 3:30 AM
             'enabled': os.getenv('BACKUP_MONTHLY_ENABLED', 'true').lower() == 'true',
+        },
+        'monthly_restore_drill': {
+            'label': 'monthly_restore_drill',
+            'day_of_month': int(os.getenv('BACKUP_DRILL_DAY', '15')),  # 15th of month
+            'hour': int(os.getenv('BACKUP_DRILL_HOUR', '4')),  # 4:00 AM
+            'minute': int(os.getenv('BACKUP_DRILL_MINUTE', '0')),  # 4:00 AM
+            'enabled': os.getenv('BACKUP_MONTHLY_DRILL_ENABLED', 'false').lower() == 'true',
         },
     }
 
@@ -71,24 +69,6 @@ def _run_hourly_backup():
         logger.error(f"[Backup Scheduler] Hourly backup failed: {e}", exc_info=True)
 
 
-def _run_daily_backup():
-    """Execute daily backup job at 6:00 PM."""
-    config = get_scheduler_config()
-    daily_cfg = config['daily']
-    
-    logger.info(f"[Backup Scheduler] Starting daily backup at {datetime.now(timezone.utc).isoformat()}")
-    
-    try:
-        call_command(
-            'backup_db',
-            label=daily_cfg['label'],
-            retention_hours=daily_cfg['retention_hours'],
-        )
-        logger.info(f"[Backup Scheduler] Daily (6 PM) backup completed successfully")
-    except Exception as e:
-        logger.error(f"[Backup Scheduler] Daily backup failed: {e}", exc_info=True)
-
-
 def _run_monthly_backup():
     """Execute monthly backup job."""
     config = get_scheduler_config()
@@ -105,6 +85,52 @@ def _run_monthly_backup():
         logger.info(f"[Backup Scheduler] Monthly backup completed successfully")
     except Exception as e:
         logger.error(f"[Backup Scheduler] Monthly backup failed: {e}", exc_info=True)
+
+
+def _run_monthly_restore_drill():
+    """Execute monthly restore drill to validate backup integrity and procedures."""
+    config = get_scheduler_config()
+    drill_cfg = config['monthly_restore_drill']
+    
+    logger.info(f"[Backup Scheduler] Starting monthly restore drill at {datetime.now(timezone.utc).isoformat()}")
+    
+    try:
+        from pathlib import Path
+        
+        # 1. Create pre-drill guard backup
+        logger.info("[Backup Scheduler] Creating pre-drill guard backup")
+        call_command(
+            'backup_db',
+            label='pre_restore_drill_guard',
+            retention_hours=2592,  # 3 months
+        )
+        
+        # 2. Find most recent non-guard backup
+        backup_dir = Path(os.getenv('BACKUP_DIR', settings.BASE_DIR / 'backups'))
+        backup_files = sorted([f for f in backup_dir.glob('*.gz') if 'guard' not in f.name])
+        
+        if not backup_files:
+            logger.error("[Backup Scheduler] No backup files found for restore drill")
+            return
+        
+        restore_file = backup_files[-1]  # Most recent
+        logger.info(f"[Backup Scheduler] Restoring from backup: {restore_file.name}")
+        
+        # 3. Restore from backup
+        call_command(
+            'restore_db',
+            str(restore_file),
+            yes_i_know=True,
+        )
+        
+        # 4. Run Django health check
+        logger.info("[Backup Scheduler] Running Django health check")
+        call_command('check')
+        
+        logger.info(f"[Backup Scheduler] Monthly restore drill completed successfully")
+        
+    except Exception as e:
+        logger.error(f"[Backup Scheduler] Monthly restore drill failed: {e}", exc_info=True)
 
 
 def start_scheduler() -> bool:
@@ -137,23 +163,6 @@ def start_scheduler() -> bool:
             )
             logger.info(f"[Backup Scheduler] Scheduled hourly backup every {config['hourly']['interval']} hour(s)")
         
-        # Add daily backup job (at 6 PM)
-        if config['daily']['enabled']:
-            _scheduler.add_job(
-                _run_daily_backup,
-                trigger=CronTrigger(
-                    hour=config['daily']['hour'],
-                    minute=config['daily']['minute'],
-                ),
-                id='backup_daily',
-                name='Daily Database Backup (6 PM)',
-                replace_existing=True,
-            )
-            logger.info(
-                f"[Backup Scheduler] Scheduled daily backup "
-                f"at {config['daily']['hour']:02d}:{config['daily']['minute']:02d}"
-            )
-        
         # Add monthly backup job
         if config['monthly']['enabled']:
             _scheduler.add_job(
@@ -171,6 +180,25 @@ def start_scheduler() -> bool:
                 f"[Backup Scheduler] Scheduled monthly backup "
                 f"at {config['monthly']['hour']:02d}:{config['monthly']['minute']:02d} "
                 f"on day {config['monthly']['day_of_month']}"
+            )
+        
+        # Add monthly restore drill job
+        if config['monthly_restore_drill']['enabled']:
+            _scheduler.add_job(
+                _run_monthly_restore_drill,
+                trigger=CronTrigger(
+                    day=config['monthly_restore_drill']['day_of_month'],
+                    hour=config['monthly_restore_drill']['hour'],
+                    minute=config['monthly_restore_drill']['minute'],
+                ),
+                id='backup_restore_drill',
+                name='Monthly Restore Drill',
+                replace_existing=True,
+            )
+            logger.info(
+                f"[Backup Scheduler] Scheduled monthly restore drill "
+                f"at {config['monthly_restore_drill']['hour']:02d}:{config['monthly_restore_drill']['minute']:02d} "
+                f"on day {config['monthly_restore_drill']['day_of_month']}"
             )
         
         _scheduler.start()
@@ -230,48 +258,3 @@ def get_scheduler_status() -> dict:
         'running': _scheduler.running,
         'jobs': jobs,
     }
-
-
-def list_backups(backup_dir: str | None = None) -> list[dict]:
-    """
-    List all available backups.
-    
-    Args:
-        backup_dir: Directory to search for backups. If None, uses BACKUP_DIR from env.
-    
-    Returns:
-        list: List of backup dictionaries with metadata.
-    """
-    if backup_dir is None:
-        backup_dir = os.getenv('BACKUP_DIR', str(settings.BASE_DIR / 'backups'))
-    
-    backup_path = Path(backup_dir)
-    backups = []
-    
-    if not backup_path.exists():
-        return backups
-    
-    # Find all .gz backup files
-    for gz_file in sorted(backup_path.glob('*.gz'), reverse=True):
-        json_file = gz_file.with_suffix('.json').with_suffix('')
-        json_file = backup_path / (gz_file.stem + '.json')
-        
-        backup_info = {
-            'file': gz_file.name,
-            'path': str(gz_file),
-            'size': gz_file.stat().st_size / (1024 * 1024),  # MB
-            'created': gz_file.stat().st_mtime,
-            'metadata': None,
-        }
-        
-        if json_file.exists():
-            try:
-                import json as json_module
-                with open(json_file, 'r') as f:
-                    backup_info['metadata'] = json_module.load(f)
-            except Exception as e:
-                logger.warning(f"Could not read metadata for {gz_file.name}: {e}")
-        
-        backups.append(backup_info)
-    
-    return backups

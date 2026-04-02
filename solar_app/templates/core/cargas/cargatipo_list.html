@@ -89,6 +89,9 @@
                     <td class="table-cell text-center text-sm text-ink-500 hidden md:table-cell">{{ carga.factor_arranque|floatformat:1 }}</td>
                     <td class="table-cell text-right">
                         <div class="flex items-center justify-end gap-0.5">
+                            <a href="{% url 'cargatipo_clonar' carga.pk %}" class="btn-ghost p-2 text-ink-400 hover:text-solar-600" title="Clonar" aria-label="Clonar {{ carga.nombre }}">
+                                <i class="fas fa-copy text-sm"></i>
+                            </a>
                             <a href="{% url 'cargatipo_update' carga.pk %}" class="btn-ghost p-2 text-ink-400 hover:text-solar-600" title="Editar" aria-label="Editar {{ carga.nombre }}">
                                 <i class="fas fa-edit text-sm"></i>
                             </a>

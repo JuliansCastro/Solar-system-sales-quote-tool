@@ -2,12 +2,12 @@
 from django.conf import settings
 from django.urls import include, path
 from . import views
-from . import api_equipment
+from core.api import legacy_equipment as api_equipment
 
 urlpatterns = []
 
 if settings.API_V1_ENABLED:
-    urlpatterns += [path('api/v1/', include('core.api_urls'))]
+    urlpatterns += [path('api/v1/', include('core.api.urls'))]
 
 urlpatterns += [
 
@@ -51,6 +51,7 @@ urlpatterns += [
     path('cargas/nuevo/', views.CargaTipoCreateView.as_view(), name='cargatipo_create'),
     path('cargas/<int:pk>/', views.CargaTipoDetailView.as_view(), name='cargatipo_detail'),
     path('cargas/<int:pk>/editar/', views.CargaTipoUpdateView.as_view(), name='cargatipo_update'),
+    path('cargas/<int:pk>/clonar/', views.cargatipo_clonar, name='cargatipo_clonar'),
     path('cargas/<int:pk>/eliminar/', views.CargaTipoDeleteView.as_view(), name='cargatipo_delete'),
 
     # Cotizaciones
@@ -64,10 +65,12 @@ urlpatterns += [
 
     # Reports
     path('cotizaciones/<int:pk>/pdf/', views.cotizacion_pdf, name='cotizacion_pdf'),
+    path('cotizaciones/<int:pk>/pdf-weasy/', views.cotizacion_pdf_weasyprint, name='cotizacion_pdf_weasy'),
     path('cotizaciones/<int:pk>/excel/', views.cotizacion_excel, name='cotizacion_excel'),
 
     # Settings
     path('configuracion/', views.company_settings_view, name='company_settings'),
+    path('configuracion/backup-restore/', views.BackupRestoreView.as_view(), name='backup_restore'),
 
     # API endpoints
     path('api/pvgis/', views.api_pvgis, name='api_pvgis'),

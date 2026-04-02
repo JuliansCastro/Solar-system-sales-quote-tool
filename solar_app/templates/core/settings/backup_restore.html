@@ -1,0 +1,124 @@
+{% extends 'base.html' %}
+
+{% block title %}Restaurar Backup | Solar Quote Tool{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto">
+    <!-- Page header -->
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold text-ink-900 mb-2 flex items-center gap-3">
+            <i class="fas fa-database text-solar-600"></i>
+            Restaurar Backup
+        </h1>
+        <p class="text-ink-600">Restaura la base de datos desde un archivo de backup previamente exportado</p>
+    </div>
+
+    <!-- Warning card -->
+    <div class="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex gap-3">
+        <div class="flex-shrink-0 pt-1">
+            <i class="fas fa-exclamation-triangle text-red-600 text-lg"></i>
+        </div>
+        <div class="flex-1">
+            <h3 class="font-semibold text-red-900 mb-1">⚠️ Operación Destructiva</h3>
+            <p class="text-sm text-red-800">
+                Esta acción eliminará <strong>todos los datos actuales</strong> y los reemplazará con los del archivo de backup.
+                Esta operación <strong>no puede deshacerse</strong>. Asegúrate de tener un backup de los datos actuales antes de continuar.
+            </p>
+        </div>
+    </div>
+
+    <!-- Form card -->
+    <div class="card p-6">
+        <form method="post" enctype="multipart/form-data" class="space-y-6">
+            {% csrf_token %}
+
+            <!-- File input -->
+            <div>
+                <label for="{{ form.backup_file.id_for_label }}" class="form-label">
+                    <i class="fas fa-file-upload text-solar-600 mr-2"></i>
+                    Archivo de Backup
+                </label>
+                <small class="text-ink-500 block mb-2">Selecciona un archivo JSON (.json) previamente exportado</small>
+                
+                {% if form.backup_file.errors %}
+                    <div class="text-red-600 text-sm mb-2">
+                        {% for error in form.backup_file.errors %}
+                            <div>{{ error }}</div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+                
+                <input 
+                    type="file" 
+                    accept=".json" 
+                    name="{{ form.backup_file.name }}" 
+                    id="{{ form.backup_file.id_for_label }}"
+                    class="form-input"
+                    data-test="backup-file-input"
+                    required
+                >
+                <small class="text-ink-500 block mt-1">
+                    Tamaño máximo: 50 MB
+                </small>
+            </div>
+
+            <!-- Confirmation checkbox -->
+            <div class="p-4 bg-canvas-100 rounded-lg">
+                <label class="flex items-start gap-3 cursor-pointer">
+                    {% if form.confirmar_restauracion.errors %}
+                        <div class="text-red-600 text-sm">
+                            {% for error in form.confirmar_restauracion.errors %}
+                                <div>{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                    
+                    <input 
+                        type="checkbox" 
+                        name="{{ form.confirmar_restauracion.name }}" 
+                        id="{{ form.confirmar_restauracion.id_for_label }}"
+                        class="form-checkbox mt-0.5 flex-shrink-0"
+                        data-test="confirm-restore-checkbox"
+                    >
+                    <span class="text-sm">
+                        <strong>Confirmo que deseo restaurar la base de datos</strong>
+                        <div class="text-red-600 font-semibold text-xs mt-1">
+                            ¡ADVERTENCIA! Esta acción eliminará todos los datos actuales.
+                        </div>
+                    </span>
+                </label>
+            </div>
+
+            <!-- Action buttons -->
+            <div class="flex gap-3 pt-4 border-t border-canvas-200">
+                <button 
+                    type="submit" 
+                    class="btn-danger"
+                >
+                    <i class="fas fa-rotate-right"></i>
+                    Restaurar Backup
+                </button>
+                <a href="{% url 'company_settings' %}" class="btn-secondary">
+                    <i class="fas fa-arrow-left"></i>
+                    Volver
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Info section -->
+    <div class="mt-8 p-4 bg-sky-50 border border-sky-200 rounded-lg">
+        <h4 class="font-semibold text-sky-900 mb-3 flex items-center gap-2">
+            <i class="fas fa-info-circle text-sky-600"></i>
+            Información
+        </h4>
+        <ul class="text-sm text-sky-800 space-y-2">
+            <li><strong>•</strong> Solo superusuarios pueden acceder a esta función</li>
+            <li><strong>•</strong> El archivo debe ser un JSON válido exportado desde este sistema</li>
+            <li><strong>•</strong> La restauración cerrará la sesión actual por seguridad</li>
+            <li><strong>•</strong> Recomendamos crear un backup actual (C:\backup_db.py) antes de restaurar</li>
+        </ul>
+    </div>
+</div>
+
+{% endblock %}
